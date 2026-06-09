@@ -1,0 +1,3135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FitLog">
+<meta name="theme-color" content="#FF6B35">
+<meta name="description" content="FitLog - Your Personal Fitness & Nutrition Tracker">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23FF6B35' width='100' height='100' rx='22'/><text x='50' y='68' text-anchor='middle' font-size='52' fill='white'>🏋️</text></svg>">
+<link rel="manifest" href="manifest.json">
+<title>FitLog</title>
+<script src="https://artifactcdn.diabrowser.engineering/ajax/libs/Chart.js/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #FAFAF7;
+  --card: #FFFFFF;
+  --text: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --accent: #FF6B35;
+  --accent-light: #FFF0E8;
+  --accent-dark: #E55A28;
+  --green: #2ECC71;
+  --green-light: #E8F8EF;
+  --border: #F0EDE8;
+  --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+  --radius: 16px;
+  --safe-top: env(safe-area-inset-top, 20px);
+  --safe-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 430px;
+  margin: 0 auto;
+  padding-bottom: calc(80px + var(--safe-bottom));
+  min-height: 100dvh;
+}
+
+.header {
+  padding: calc(var(--safe-top) + 12px) 20px 16px;
+  position: sticky;
+  top: 0;
+  background: rgba(250,250,247,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 100;
+}
+
+.header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+.header-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+.page { display: none; padding: 0 20px 20px; }
+.page.active { display: block; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.stat-card.wide { grid-column: 1 / -1; }
+
+.stat-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; margin-bottom: 10px;
+}
+
+.stat-icon.orange { background: var(--accent-light); }
+.stat-icon.green { background: var(--green-light); }
+.stat-icon.blue { background: #E8F0FE; }
+.stat-icon.purple { background: #F3E8FF; }
+.stat-icon.red { background: #FFE8E8; }
+
+.stat-value { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
+.stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+
+.streak-bar {
+  background: var(--card); border-radius: var(--radius); padding: 16px;
+  box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 20px;
+}
+
+.streak-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.streak-days { display: flex; justify-content: space-between; gap: 4px; }
+.streak-day { flex: 1; text-align: center; }
+
+.streak-dot {
+  width: 32px; height: 32px; border-radius: 50%; margin: 0 auto 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; background: #F5F3EE; color: var(--text-secondary); transition: all 0.3s;
+}
+
+.streak-dot.done { background: var(--accent); color: white; }
+.streak-dot.today { border: 2px solid var(--accent); background: var(--accent-light); color: var(--accent); }
+.streak-day-label { font-size: 10px; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; }
+
+.section-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.3px; }
+
+.workout-item {
+  background: var(--card); border-radius: var(--radius); padding: 14px 16px;
+  box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 14px;
+}
+
+.workout-icon-wrap {
+  width: 42px; height: 42px; border-radius: 12px; background: var(--accent-light);
+  display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+}
+
+.workout-info { flex: 1; min-width: 0; }
+.workout-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.workout-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.workout-date { font-size: 11px; color: var(--text-secondary); flex-shrink: 0; text-align: right; }
+
+.workout-delete {
+  width: 28px; height: 28px; border-radius: 8px; border: none; background: #FEE;
+  color: #E74C3C; font-size: 14px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.chart-container {
+  background: var(--card); border-radius: var(--radius); padding: 16px;
+  box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 20px;
+}
+
+.chart-wrap { position: relative; width: 100%; height: clamp(180px, 30vh, 280px); }
+
+.form-card {
+  background: var(--card); border-radius: var(--radius); padding: 20px;
+  box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 16px;
+  position: relative; z-index: 10;
+}
+
+.form-group { margin-bottom: 16px; }
+.form-group:last-child { margin-bottom: 0; }
+
+.form-label {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 6px; display: block;
+}
+
+.form-input {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px;
+  font-size: 16px; font-family: inherit; background: var(--bg); color: var(--text);
+  outline: none; transition: border-color 0.2s; -webkit-appearance: none;
+}
+
+.form-input:focus { border-color: var(--accent); }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+.btn {
+  width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 16px;
+  font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s; -webkit-appearance: none;
+}
+
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:active { background: var(--accent-dark); transform: scale(0.98); }
+.btn-secondary { background: var(--accent-light); color: var(--accent); }
+
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+
+.preset-chip {
+  padding: 8px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: var(--card); font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all 0.2s; font-family: inherit; color: var(--text);
+}
+
+.preset-chip:active, .preset-chip.selected {
+  background: var(--accent-light); border-color: var(--accent); color: var(--accent);
+}
+
+.tab-bar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px; background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border); display: flex;
+  padding: 6px 0 calc(6px + var(--safe-bottom)); z-index: 200;
+}
+
+.tab-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 6px 0; cursor: pointer; border: none; background: none;
+  font-family: inherit; color: var(--text-secondary); transition: color 0.2s; -webkit-appearance: none;
+}
+
+.tab-item.active { color: var(--accent); }
+.tab-icon { font-size: 22px; margin-bottom: 2px; }
+.tab-label { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
+
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; line-height: 1.5; }
+
+.weight-input-row { display: flex; gap: 10px; margin-bottom: 20px; }
+.weight-input-row .form-input { flex: 1; }
+.weight-input-row .btn { width: auto; padding: 12px 20px; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in { animation: slideUp 0.35s ease-out both; }
+
+.toast {
+  position: fixed; top: calc(var(--safe-top) + 60px); left: 50%;
+  transform: translateX(-50%) translateY(-20px); background: var(--text); color: white;
+  padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 500;
+  opacity: 0; transition: all 0.3s; z-index: 500; pointer-events: none; white-space: nowrap;
+}
+
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Food tracker styles */
+.food-search-wrap { position: relative; margin-bottom: 16px; z-index: 60; }
+
+.food-results {
+  position: absolute; top: 100%; left: 0; right: 0; background: var(--card);
+  border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  max-height: 220px; overflow-y: auto; z-index: 60; display: none;
+}
+
+.food-results.show { display: block; }
+
+.food-result-item {
+  padding: 12px 14px; cursor: pointer; border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.food-result-item:last-child { border-bottom: none; }
+.food-result-item:active { background: var(--accent-light); }
+
+.food-result-name { font-size: 14px; font-weight: 600; }
+.food-result-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+.macro-summary {
+  background: var(--card); border-radius: var(--radius); padding: 16px;
+  box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 16px;
+}
+
+.macro-title-row {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+}
+
+.macro-title { font-size: 16px; font-weight: 700; }
+.macro-cals { font-size: 22px; font-weight: 700; color: var(--accent); }
+.macro-cals-label { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+
+.macro-bars { display: flex; gap: 12px; }
+
+.macro-bar-item { flex: 1; text-align: center; }
+
+.macro-bar-track {
+  height: 6px; background: #F0EDE8; border-radius: 3px; overflow: hidden; margin-bottom: 6px;
+}
+
+.macro-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+.macro-bar-fill.protein { background: #3B82F6; }
+.macro-bar-fill.carbs { background: var(--accent); }
+.macro-bar-fill.fat { background: #F59E0B; }
+.macro-bar-fill.fiber { background: var(--green); }
+
+.macro-bar-value { font-size: 16px; font-weight: 700; line-height: 1; }
+.macro-bar-label { font-size: 10px; color: var(--text-secondary); margin-top: 2px; text-transform: uppercase; font-weight: 500; letter-spacing: 0.3px; }
+
+.food-qty-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 16px; }
+.food-qty-row .form-group { flex: 1; margin-bottom: 0; }
+.food-qty-row .btn { width: auto; padding: 12px 20px; height: 48px; }
+
+.food-selected-card {
+  background: var(--accent-light); border-radius: 14px; padding: 14px 16px;
+  margin-bottom: 14px; display: none; align-items: center; gap: 12px;
+}
+
+.food-selected-card.show { display: flex; }
+.food-selected-info { flex: 1; }
+.food-selected-name { font-size: 15px; font-weight: 600; color: var(--accent-dark); }
+.food-selected-per { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+.food-selected-clear {
+  width: 28px; height: 28px; border-radius: 8px; border: none;
+  background: rgba(255,107,53,0.15); color: var(--accent-dark); font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+
+.food-category-tabs {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+
+.food-category-tabs::-webkit-scrollbar { display: none; }
+
+.food-cat-chip {
+  padding: 7px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: var(--card); font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; font-family: inherit; color: var(--text-secondary);
+  white-space: nowrap; flex-shrink: 0;
+}
+
+.food-cat-chip.active {
+  background: var(--accent); border-color: var(--accent); color: white;
+}
+
+.food-log-item {
+  background: var(--card); border-radius: var(--radius); padding: 12px 16px;
+  box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px;
+}
+
+.food-log-info { flex: 1; min-width: 0; }
+.food-log-name { font-size: 14px; font-weight: 600; }
+.food-log-macros { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.food-log-cals { font-size: 14px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+
+/* Diet plan */
+.diet-toggle-row {
+  display: flex; gap: 8px; margin-bottom: 16px;
+}
+
+.diet-toggle {
+  flex: 1; padding: 12px; border-radius: 12px; border: 1.5px solid var(--border);
+  background: var(--card); font-size: 14px; font-weight: 600; cursor: pointer;
+  font-family: inherit; color: var(--text-secondary); text-align: center; transition: all 0.2s;
+}
+
+.diet-toggle.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+.meal-card {
+  background: var(--card); border-radius: var(--radius); padding: 16px;
+  box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 12px;
+}
+
+.meal-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+}
+
+.meal-time { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; color: var(--text-secondary); }
+.meal-title { font-size: 16px; font-weight: 700; }
+.meal-cals { font-size: 14px; font-weight: 700; color: var(--accent); }
+
+.meal-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+
+.meal-item:last-child { border-bottom: none; }
+
+.meal-item-name { font-size: 14px; font-weight: 500; flex: 1; }
+.meal-item-qty { font-size: 12px; color: var(--text-secondary); margin-right: 8px; }
+.meal-item-cal { font-size: 13px; font-weight: 600; color: var(--accent); flex-shrink: 0; margin-right: 8px; }
+
+.meal-item-swap {
+  width: 24px; height: 24px; border-radius: 6px; border: none;
+  background: #FEE; color: #E74C3C; font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+.diet-replace-box {
+  background: var(--bg); border-radius: 10px; padding: 10px; margin-top: 6px;
+  border: 1.5px dashed var(--accent);
+}
+
+.diet-replace-box input {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+  font-size: 14px; font-family: inherit; background: var(--card); outline: none;
+  margin-bottom: 6px;
+}
+
+.diet-replace-box input:focus { border-color: var(--accent); }
+
+.diet-replace-results { max-height: 150px; overflow-y: auto; }
+
+.diet-replace-item {
+  padding: 8px; cursor: pointer; border-radius: 6px; font-size: 13px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+.diet-replace-item:active { background: var(--accent-light); }
+.diet-replace-item-name { font-weight: 500; }
+.diet-replace-item-cal { font-size: 12px; color: var(--accent); font-weight: 600; }
+
+.diet-summary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  border-radius: var(--radius); padding: 18px; color: white; margin-bottom: 16px;
+}
+
+.diet-summary-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; font-weight: 600; }
+.diet-summary-cal { font-size: 32px; font-weight: 700; margin: 4px 0; }
+.diet-summary-row { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+.diet-summary-item { font-size: 13px; font-weight: 500; opacity: 0.9; }
+.diet-summary-item span { font-weight: 700; font-size: 15px; display: block; opacity: 1; }
+
+.diet-note {
+  font-size: 12px; color: var(--text-secondary); text-align: center;
+  padding: 8px; margin-top: 4px; line-height: 1.5;
+}
+
+/* Meal checkbox */
+.meal-check {
+  width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border);
+  background: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: transparent; transition: all 0.2s; flex-shrink: 0; margin-right: 10px;
+}
+
+.meal-check.done { background: var(--green); border-color: var(--green); color: white; }
+
+.meal-card.completed { opacity: 0.6; }
+.meal-card.completed .meal-title { text-decoration: line-through; }
+
+/* Calorie progress ring */
+.cal-ring-wrap {
+  display: flex; align-items: center; justify-content: center; gap: 20px;
+  background: var(--card); border-radius: var(--radius); padding: 16px;
+  box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 16px;
+}
+
+.cal-ring { position: relative; width: 100px; height: 100px; flex-shrink: 0; }
+.cal-ring svg { transform: rotate(-90deg); }
+.cal-ring-text {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  text-align: center;
+}
+.cal-ring-pct { font-size: 20px; font-weight: 700; line-height: 1; }
+.cal-ring-label { font-size: 9px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px; }
+
+.cal-ring-stats { flex: 1; }
+.cal-ring-row {
+  display: flex; justify-content: space-between; padding: 6px 0;
+  border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.cal-ring-row:last-child { border-bottom: none; }
+.cal-ring-row-label { color: var(--text-secondary); }
+.cal-ring-row-val { font-weight: 700; }
+
+/* Water tracker */
+.water-tracker {
+  background: var(--card); border-radius: var(--radius); padding: 16px;
+  box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 16px;
+}
+
+.water-title-row {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+}
+
+.water-title { font-size: 14px; font-weight: 700; }
+.water-count { font-size: 14px; font-weight: 600; color: #3B82F6; }
+
+.water-glasses {
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+}
+
+.water-glass {
+  width: 36px; height: 42px; border-radius: 6px 6px 8px 8px; border: 2px solid #D4E6FF;
+  background: #F0F7FF; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: all 0.2s; position: relative; overflow: hidden;
+}
+
+.water-glass.filled { background: #3B82F6; border-color: #2563EB; }
+.water-glass.filled::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 100%; background: rgba(255,255,255,0.15);
+  border-radius: 0 0 6px 6px;
+}
+
+.meal-emoji {
+  font-size: 18px; margin-right: 8px; flex-shrink: 0;
+}
+
+body.dark {
+  --bg: #1A1A2E;
+  --card: #22223B;
+  --text: #EAEAEA;
+  --text-secondary: #9A9AB0;
+  --border: #33335A;
+  --shadow: 0 1px 3px rgba(0,0,0,0.2);
+  --accent-light: #3D2A1A;
+  --green-light: #1A3D2A;
+}
+
+body.dark .header { background: rgba(26,26,46,0.85); }
+body.dark .tab-bar { background: rgba(34,34,59,0.9); }
+body.dark .form-input { background: var(--bg); color: var(--text); }
+body.dark .preset-chip { color: var(--text-secondary); }
+body.dark .diet-replace-box input { background: var(--card); color: var(--text); }
+body.dark .water-glass { background: #2A2A4A; border-color: #3A3A6A; }
+body.dark select { background: var(--bg); color: var(--text); }
+
+@media print {
+  .tab-bar { display: none; }
+  .page { display: block !important; page-break-inside: avoid; }
+  body { background: white; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1 id="pageTitle">Dashboard</h1>
+    <div class="header-sub" id="headerSub"></div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="page active" id="pageDashboard">
+    <div class="stats-grid">
+      <div class="stat-card animate-in">
+        <div class="stat-icon orange">🏋️</div>
+        <div class="stat-value" id="totalWorkouts">0</div>
+        <div class="stat-label">Total Workouts</div>
+      </div>
+      <div class="stat-card animate-in" style="animation-delay:0.05s">
+        <div class="stat-icon green">🔥</div>
+        <div class="stat-value" id="currentStreak">0</div>
+        <div class="stat-label">Day Streak</div>
+      </div>
+      <div class="stat-card animate-in" style="animation-delay:0.1s">
+        <div class="stat-icon blue">📅</div>
+        <div class="stat-value" id="weekWorkouts">0</div>
+        <div class="stat-label">This Week</div>
+      </div>
+      <div class="stat-card animate-in" style="animation-delay:0.15s">
+        <div class="stat-icon purple">🍽️</div>
+        <div class="stat-value" id="todayCals">0</div>
+        <div class="stat-label">Eaten Today</div>
+      </div>
+      <div class="stat-card wide animate-in" style="animation-delay:0.2s">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="stat-icon red">🔥</div>
+            <div class="stat-value" id="burnedToday">0</div>
+            <div class="stat-label">Burned Today</div>
+          </div>
+          <div style="text-align:right">
+            <div class="stat-value" id="netCals" style="font-size:22px;color:var(--accent)">0</div>
+            <div class="stat-label">Net Calories</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="streak-bar animate-in" style="animation-delay:0.2s">
+      <div class="streak-title">This Week</div>
+      <div class="streak-days" id="streakDays"></div>
+    </div>
+
+    <!-- Sleep Quick Log -->
+    <div class="form-card animate-in" style="animation-delay:0.25s">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="section-title" style="margin-bottom:0">🌙 Last Night's Sleep</div>
+        <div id="homeSleepStatus" style="font-size:12px;color:var(--text-secondary)"></div>
+      </div>
+      <div id="homeSleepLogged" style="display:none">
+        <div id="homeSleepInfo" style="display:flex;align-items:center;gap:12px"></div>
+      </div>
+      <div id="homeSleepForm">
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <div style="flex:1">
+            <label class="form-label">Hours</label>
+            <input class="form-input" type="number" id="homeSleepHrs" placeholder="7.5" inputmode="decimal" step="0.5" style="padding:10px">
+          </div>
+          <div style="flex:1">
+            <label class="form-label">Quality</label>
+            <select class="form-input" id="homeSleepQual" style="padding:10px">
+              <option value="5">😴 Great</option>
+              <option value="4">🙂 Good</option>
+              <option value="3" selected>😐 OK</option>
+              <option value="2">😟 Poor</option>
+              <option value="1">😫 Bad</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="logHomeSleep()" style="width:auto;padding:10px 16px;height:44px">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Personal Records -->
+    <div class="form-card animate-in" style="animation-delay:0.3s">
+      <div class="section-title" style="margin-bottom:10px">🏆 Personal Records</div>
+      <div id="homePRs"></div>
+    </div>
+
+    <div class="section-title animate-in" style="animation-delay:0.35s">Recent Workouts</div>
+    <div id="recentWorkouts"></div>
+  </div>
+
+  <!-- Log Workout -->
+  <div class="page" id="pageLog">
+    <div class="form-card animate-in">
+      <div class="form-group">
+        <label class="form-label">Quick Pick</label>
+        <div class="presets" id="presetChips"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Exercise Name</label>
+        <input class="form-input" type="text" id="exerciseName" placeholder="e.g. Bench Press" autocomplete="off">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Sets</label>
+          <input class="form-input" type="number" id="exerciseSets" placeholder="3" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reps</label>
+          <input class="form-input" type="number" id="exerciseReps" placeholder="10" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Weight (kg)</label>
+          <input class="form-input" type="number" id="exerciseWeight" placeholder="60" inputmode="decimal">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label">Duration (minutes)</label>
+        <input class="form-input" type="number" id="exerciseDuration" placeholder="30" inputmode="numeric">
+      </div>
+      <div id="calEstimate" style="margin-top:10px;font-size:13px;color:var(--accent);font-weight:600;display:none"></div>
+    </div>
+    <button class="btn btn-primary animate-in" style="animation-delay:0.1s" onclick="logWorkout()">Log Workout</button>
+
+    <!-- Workout Templates -->
+    <div class="form-card animate-in" style="animation-delay:0.15s;margin-top:16px">
+      <div class="section-title" style="margin-bottom:10px">📋 Workout Templates</div>
+      <div class="presets" id="templateChips" style="margin-bottom:8px"></div>
+      <div id="templateDetail"></div>
+      <button class="btn btn-secondary" onclick="showCreateTemplate()" style="margin-top:8px">+ Create Template</button>
+      <div id="createTemplateArea"></div>
+    </div>
+
+    <!-- Workout History -->
+    <div class="section-title animate-in" style="animation-delay:0.2s;margin-top:16px">📜 Workout History</div>
+    <div id="allWorkouts"></div>
+  </div>
+
+  <!-- Food Tracker -->
+  <div class="page" id="pageFood">
+    <!-- Diet Plan Toggle - FIRST -->
+    <div class="form-card animate-in" style="cursor:pointer" onclick="toggleDietSection()">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="section-title" style="margin-bottom:0">📝 Diet Plan</div>
+        <span id="dietToggleArrow" style="font-size:18px;transition:transform 0.3s">▼</span>
+      </div>
+    </div>
+    <div id="dietSection" style="display:none">
+      <div class="form-card" id="dietSetup" style="margin-top:8px">
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="form-group">
+            <label class="form-label">Age</label>
+            <input class="form-input" type="number" id="dietAge" placeholder="25" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Gender</label>
+            <select class="form-input" id="dietGender" style="padding:10px"><option value="male">Male</option><option value="female">Female</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Height (cm)</label>
+            <input class="form-input" type="number" id="dietHeight" placeholder="170" inputmode="numeric">
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr">
+          <div class="form-group">
+            <label class="form-label">Current Weight (kg)</label>
+            <input class="form-input" type="number" id="dietCurrentWt" placeholder="75" inputmode="decimal">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Target Weight (kg)</label>
+            <input class="form-input" type="number" id="dietTargetWt" placeholder="65" inputmode="decimal">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Goal</label>
+          <div class="food-category-tabs" style="margin-bottom:0">
+            <button class="food-cat-chip active" onclick="setDietField(this,'dietGoalVal','fatloss')">🔥 Fat Loss</button>
+            <button class="food-cat-chip" onclick="setDietField(this,'dietGoalVal','musclegain')">💪 Muscle Gain</button>
+            <button class="food-cat-chip" onclick="setDietField(this,'dietGoalVal','recomp')">🔄 Recomp</button>
+            <button class="food-cat-chip" onclick="setDietField(this,'dietGoalVal','maintain')">⚖️ Maintain</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Activity Level</label>
+          <div class="food-category-tabs" style="margin-bottom:0">
+            <button class="food-cat-chip" onclick="setDietField(this,'dietActivityVal','sedentary')">🪑 Sedentary</button>
+            <button class="food-cat-chip active" onclick="setDietField(this,'dietActivityVal','light')">🚶 Light</button>
+            <button class="food-cat-chip" onclick="setDietField(this,'dietActivityVal','moderate')">🏃 Moderate</button>
+            <button class="food-cat-chip" onclick="setDietField(this,'dietActivityVal','very')">🔥 Very Active</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Diet Preference</label>
+          <div class="food-category-tabs" style="margin-bottom:0">
+            <button class="food-cat-chip active" onclick="setDietField(this,'dietTypeVal','veg')">🥬 Veg</button>
+            <button class="food-cat-chip" onclick="setDietField(this,'dietTypeVal','egg')">🥚 Egg</button>
+            <button class="food-cat-chip" onclick="setDietField(this,'dietTypeVal','nonveg')">🍗 Non-Veg</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Workout Time</label>
+          <div class="food-category-tabs" style="margin-bottom:0">
+            <button class="food-cat-chip active" onclick="setDietField(this,'dietWorkoutTime','morning')">🌅 AM</button>
+            <button class="food-cat-chip" onclick="setDietField(this,'dietWorkoutTime','evening')">🌙 PM</button>
+            <button class="food-cat-chip" onclick="setDietField(this,'dietWorkoutTime','none')">❌ None</button>
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr">
+          <div class="form-group">
+            <label class="form-label">Budget</label>
+            <select class="form-input" id="dietBudget" style="padding:10px"><option value="low">💰 Low</option><option value="medium" selected>💰💰 Medium</option><option value="high">💰💰💰 High</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Meals/Day</label>
+            <select class="form-input" id="dietMealsCount" style="padding:10px"><option value="4">4 Meals</option><option value="5" selected>5 Meals</option><option value="6">6 Meals</option><option value="7">7 Meals</option></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Allergies / Conditions (optional)</label>
+          <input class="form-input" type="text" id="dietAllergies" placeholder="e.g. lactose intolerant, no nuts">
+        </div>
+        <button class="btn btn-primary" onclick="generateDietPlan()" style="margin-top:8px">🧠 Generate Personalized Plan</button>
+      </div>
+      <div id="dietPlanOutput"></div>
+    </div>
+
+    <!-- Daily Macro Summary -->
+    <div class="macro-summary animate-in" style="margin-top:12px" id="macroSummary">
+      <div class="macro-title-row">
+        <div>
+          <div class="macro-title">Today's Nutrition</div>
+        </div>
+        <div style="text-align:right">
+          <div class="macro-cals" id="dayCals">0</div>
+          <div class="macro-cals-label">calories</div>
+        </div>
+      </div>
+      <div class="macro-bars">
+        <div class="macro-bar-item">
+          <div class="macro-bar-track"><div class="macro-bar-fill protein" id="barProtein" style="width:0%"></div></div>
+          <div class="macro-bar-value" id="dayProtein">0g</div>
+          <div class="macro-bar-label">Protein</div>
+        </div>
+        <div class="macro-bar-item">
+          <div class="macro-bar-track"><div class="macro-bar-fill carbs" id="barCarbs" style="width:0%"></div></div>
+          <div class="macro-bar-value" id="dayCarbs">0g</div>
+          <div class="macro-bar-label">Carbs</div>
+        </div>
+        <div class="macro-bar-item">
+          <div class="macro-bar-track"><div class="macro-bar-fill fat" id="barFat" style="width:0%"></div></div>
+          <div class="macro-bar-value" id="dayFat">0g</div>
+          <div class="macro-bar-label">Fat</div>
+        </div>
+        <div class="macro-bar-item">
+          <div class="macro-bar-track"><div class="macro-bar-fill fiber" id="barFiber" style="width:0%"></div></div>
+          <div class="macro-bar-value" id="dayFiber">0g</div>
+          <div class="macro-bar-label">Fiber</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Meal-wise sections rendered by JS (collapsible) -->
+    <div id="mealWiseFoodLog"></div>
+  </div>
+
+  <!-- Weight -->
+  <div class="page" id="pageWeight">
+    <div class="form-card animate-in">
+      <div class="form-group">
+        <label class="form-label">Log Today's Weight (kg)</label>
+        <div class="weight-input-row">
+          <input class="form-input" type="number" id="weightInput" placeholder="72.5" inputmode="decimal" step="0.1">
+          <button class="btn btn-primary" onclick="logWeight()">Save</button>
+        </div>
+      </div>
+    </div>
+    <div class="chart-container animate-in" style="animation-delay:0.1s">
+      <div class="section-title">Weight Trend</div>
+      <div class="chart-wrap">
+        <canvas id="weightChart"></canvas>
+      </div>
+    </div>
+    <div id="weightHistory"></div>
+
+    <!-- Daily Goals -->
+    <div class="form-card animate-in" style="animation-delay:0.2s;margin-top:16px">
+      <div class="section-title" style="margin-bottom:12px">🎯 Daily Goals</div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group">
+          <label class="form-label">Calories</label>
+          <input class="form-input" type="number" id="goalCal" placeholder="2000" inputmode="numeric" onchange="saveGoals()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Protein (g)</label>
+          <input class="form-input" type="number" id="goalProtein" placeholder="120" inputmode="numeric" onchange="saveGoals()">
+        </div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group">
+          <label class="form-label">Water (glasses)</label>
+          <input class="form-input" type="number" id="goalWater" placeholder="8" inputmode="numeric" onchange="saveGoals()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sleep (hrs)</label>
+          <input class="form-input" type="number" id="goalSleep" placeholder="8" inputmode="numeric" onchange="saveGoals()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- More -->
+  <div class="page" id="pageMore">
+    <!-- Profile -->
+    <div class="form-card animate-in">
+      <div class="section-title" style="margin-bottom:12px">👤 Profile</div>
+      <div class="form-group">
+        <label class="form-label">Name</label>
+        <input class="form-input" type="text" id="profileName" placeholder="Your name" onchange="saveProfile()">
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group">
+          <label class="form-label">Age</label>
+          <input class="form-input" type="number" id="profileAge" placeholder="25" inputmode="numeric" onchange="saveProfile()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Height (cm)</label>
+          <input class="form-input" type="number" id="profileHeight" placeholder="170" inputmode="numeric" onchange="saveProfile()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Activity Level</label>
+        <div class="diet-toggle-row">
+          <button class="diet-toggle active" id="actLow" onclick="setActivity('low')" style="font-size:12px;padding:10px">🪑 Low</button>
+          <button class="diet-toggle" id="actMed" onclick="setActivity('medium')" style="font-size:12px;padding:10px">🚶 Medium</button>
+          <button class="diet-toggle" id="actHigh" onclick="setActivity('high')" style="font-size:12px;padding:10px">🏃 High</button>
+        </div>
+      </div>
+      <div id="bmiDisplay" style="margin-top:8px"></div>
+    </div>
+
+    <!-- Sleep Tracker -->
+    <div class="form-card animate-in" style="animation-delay:0.1s">
+      <div class="section-title" style="margin-bottom:12px">🌙 Sleep Tracker</div>
+      <div class="form-row" style="grid-template-columns:2fr 1fr">
+        <div class="form-group">
+          <label class="form-label">Hours Slept</label>
+          <input class="form-input" type="number" id="sleepHours" placeholder="7.5" inputmode="decimal" step="0.5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quality</label>
+          <select class="form-input" id="sleepQuality" style="padding:10px">
+            <option value="5">😴 Great</option>
+            <option value="4">🙂 Good</option>
+            <option value="3" selected>😐 OK</option>
+            <option value="2">😟 Poor</option>
+            <option value="1">😫 Bad</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="logSleep()" style="margin-top:4px">Log Sleep</button>
+      <div id="sleepHistory" style="margin-top:12px"></div>
+    </div>
+
+    <!-- Body Measurements -->
+    <div class="form-card animate-in" style="animation-delay:0.15s">
+      <div class="section-title" style="margin-bottom:12px">📏 Body Measurements (cm)</div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group">
+          <label class="form-label">Chest</label>
+          <input class="form-input" type="number" id="measChest" placeholder="95" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Waist</label>
+          <input class="form-input" type="number" id="measWaist" placeholder="80" inputmode="decimal">
+        </div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group">
+          <label class="form-label">Hip</label>
+          <input class="form-input" type="number" id="measHip" placeholder="95" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bicep</label>
+          <input class="form-input" type="number" id="measBicep" placeholder="32" inputmode="decimal">
+        </div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group">
+          <label class="form-label">Thigh</label>
+          <input class="form-input" type="number" id="measThigh" placeholder="55" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Neck</label>
+          <input class="form-input" type="number" id="measNeck" placeholder="38" inputmode="decimal">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="logMeasurements()">Save Measurements</button>
+      <div id="measHistory" style="margin-top:12px"></div>
+    </div>
+
+    <!-- Custom Food -->
+    <div class="form-card animate-in" style="animation-delay:0.35s">
+      <div class="section-title" style="margin-bottom:12px">🍽️ Add Custom Food</div>
+      <div class="form-group">
+        <label class="form-label">Food Name</label>
+        <input class="form-input" type="text" id="customFoodName" placeholder="e.g. Mom's Special Curry">
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group">
+          <label class="form-label">Calories</label>
+          <input class="form-input" type="number" id="customFoodCal" placeholder="200" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Protein (g)</label>
+          <input class="form-input" type="number" id="customFoodP" placeholder="10" inputmode="decimal">
+        </div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="form-group">
+          <label class="form-label">Carbs (g)</label>
+          <input class="form-input" type="number" id="customFoodC" placeholder="30" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fat (g)</label>
+          <input class="form-input" type="number" id="customFoodF" placeholder="8" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Serving</label>
+          <input class="form-input" type="text" id="customFoodServing" placeholder="1 cup">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addCustomFood()">Add to Database</button>
+    </div>
+
+    <!-- Dark Mode & Export -->
+    <div class="form-card animate-in" style="animation-delay:0.4s">
+      <div class="section-title" style="margin-bottom:12px">⚙️ Settings</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:14px;font-weight:500">🔔 Meal Reminders</span>
+        <button class="diet-toggle" id="notifBtn" onclick="enableNotifications()" style="width:auto;padding:8px 16px;font-size:13px">Off</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:14px;font-weight:500">📱 Install App</span>
+        <button class="btn btn-secondary" onclick="installPWA()" style="width:auto;padding:8px 16px;font-size:13px">Install</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:14px;font-weight:500">🌓 Dark Mode</span>
+        <button class="diet-toggle" id="darkModeBtn" onclick="toggleDarkMode()" style="width:auto;padding:8px 16px;font-size:13px">Off</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:14px;font-weight:500">💾 Export All Data</span>
+        <button class="btn btn-secondary" onclick="exportData()" style="width:auto;padding:8px 16px;font-size:13px">Download</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0">
+        <span style="font-size:14px;font-weight:500">🗑️ Clear All Data</span>
+        <button class="btn btn-secondary" onclick="clearAllData()" style="width:auto;padding:8px 16px;font-size:13px;background:#FEE;color:#E74C3C">Reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-item active" onclick="switchTab('Dashboard')">
+    <span class="tab-icon">📊</span>
+    <span class="tab-label">Home</span>
+  </button>
+  <button class="tab-item" onclick="switchTab('Log')">
+    <span class="tab-icon">💪</span>
+    <span class="tab-label">Workout</span>
+  </button>
+  <button class="tab-item" onclick="switchTab('Food')">
+    <span class="tab-icon">🍽️</span>
+    <span class="tab-label">Food</span>
+  </button>
+  <button class="tab-item" onclick="switchTab('Weight')">
+    <span class="tab-icon">⚖️</span>
+    <span class="tab-label">Weight</span>
+  </button>
+  <button class="tab-item" onclick="switchTab('More')">
+    <span class="tab-icon">⚙️</span>
+    <span class="tab-label">More</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== FOOD DATABASE ====================
+const FOOD_DB = [
+  // --- South Indian Breakfast ---
+  { name: 'Mutta Dosai (Egg Dosa)', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~120g', cal: 250, protein: 10, carbs: 30, fat: 10, fiber: 1 },
+  { name: 'Plain Dosai', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~80g', cal: 120, protein: 3, carbs: 20, fat: 3, fiber: 1 },
+  { name: 'Masala Dosai', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~150g', cal: 210, protein: 5, carbs: 30, fat: 8, fiber: 2 },
+  { name: 'Ghee Roast Dosai', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~130g', cal: 280, protein: 4, carbs: 32, fat: 15, fiber: 1 },
+  { name: 'Rava Dosai', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~100g', cal: 180, protein: 4, carbs: 25, fat: 7, fiber: 1 },
+  { name: 'Onion Uthappam', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~150g', cal: 200, protein: 5, carbs: 28, fat: 7, fiber: 2 },
+  { name: 'Idli', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~40g', cal: 60, protein: 2, carbs: 12, fat: 0.5, fiber: 0.5 },
+  { name: 'Pongal (Ven)', cat: 'South Indian', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 250, protein: 6, carbs: 35, fat: 9, fiber: 2 },
+  { name: 'Upma', cat: 'South Indian', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 210, protein: 5, carbs: 30, fat: 8, fiber: 2 },
+  { name: 'Vada (Medu)', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~50g', cal: 130, protein: 5, carbs: 12, fat: 7, fiber: 2 },
+  { name: 'Appam', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~80g', cal: 120, protein: 2, carbs: 22, fat: 2, fiber: 0.5 },
+  { name: 'Puttu', cat: 'South Indian', serving: '1 cylinder', unit: 'piece', size: '~150g', cal: 180, protein: 3, carbs: 35, fat: 3, fiber: 2 },
+  { name: 'Pesarattu', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~100g', cal: 150, protein: 8, carbs: 20, fat: 4, fiber: 3 },
+  { name: 'Paniyaram', cat: 'South Indian', serving: '4 pieces', unit: 'piece', size: '~30g each', cal: 160, protein: 4, carbs: 24, fat: 5, fiber: 1 },
+  { name: 'Adai Dosai', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~120g', cal: 200, protein: 8, carbs: 28, fat: 6, fiber: 3 },
+  { name: 'Idiyappam', cat: 'South Indian', serving: '2 pieces', unit: 'piece', size: '~40g each', cal: 150, protein: 3, carbs: 30, fat: 1, fiber: 1 },
+  { name: 'Kothu Parotta (Veg)', cat: 'South Indian', serving: '1 plate', unit: 'plate', size: '~300g', cal: 400, protein: 10, carbs: 48, fat: 18, fiber: 3 },
+  { name: 'Kothu Parotta (Egg)', cat: 'South Indian', serving: '1 plate', unit: 'plate', size: '~320g', cal: 480, protein: 16, carbs: 48, fat: 24, fiber: 3 },
+  { name: 'Kothu Parotta (Chicken)', cat: 'South Indian', serving: '1 plate', unit: 'plate', size: '~350g', cal: 550, protein: 24, carbs: 48, fat: 28, fiber: 3 },
+  { name: 'Parotta Salna', cat: 'South Indian', serving: '200ml', unit: 'ml', size: '200ml / 1 cup', cal: 180, protein: 5, carbs: 14, fat: 12, fiber: 2 },
+  { name: 'Chicken Salna', cat: 'South Indian', serving: '200ml', unit: 'ml', size: '200ml / 1 cup', cal: 260, protein: 20, carbs: 10, fat: 16, fiber: 2 },
+  { name: 'Egg Parotta', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~150g', cal: 350, protein: 12, carbs: 38, fat: 16, fiber: 1 },
+  { name: 'Coin Parotta', cat: 'South Indian', serving: '10 pieces', unit: 'piece', size: '~15g each', cal: 280, protein: 5, carbs: 36, fat: 12, fiber: 1 },
+  { name: 'Dosa (Cheese)', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~140g', cal: 280, protein: 10, carbs: 24, fat: 16, fiber: 1 },
+  { name: 'Kuzhi Paniyaram', cat: 'South Indian', serving: '6 pieces', unit: 'piece', size: '~20g each', cal: 180, protein: 4, carbs: 26, fat: 6, fiber: 1 },
+  { name: 'Podi Idli', cat: 'South Indian', serving: '4 pieces', unit: 'piece', size: '~40g each', cal: 300, protein: 8, carbs: 42, fat: 10, fiber: 2 },
+  { name: 'Ghee Podi Dosai', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~110g', cal: 280, protein: 5, carbs: 28, fat: 16, fiber: 1 },
+  { name: 'Mini Tiffin (Idli+Vada+Dosai)', cat: 'South Indian', serving: '1 set', unit: 'set', size: '~250g', cal: 350, protein: 10, carbs: 44, fat: 14, fiber: 3 },
+  { name: 'Bisi Bele Bath', cat: 'South Indian', serving: '1 plate', unit: 'plate', size: '~300g', cal: 350, protein: 10, carbs: 50, fat: 12, fiber: 4 },
+  { name: 'Puliyodarai (Tamarind Rice)', cat: 'South Indian', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 270, protein: 5, carbs: 45, fat: 8, fiber: 2 },
+  { name: 'Thakkali Sadam', cat: 'South Indian', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 240, protein: 5, carbs: 40, fat: 7, fiber: 2 },
+  { name: 'Thayir Sadam (Curd Rice)', cat: 'South Indian', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 210, protein: 6, carbs: 35, fat: 5, fiber: 1 },
+  { name: 'Meals (Full South Indian)', cat: 'South Indian', serving: '1 plate', unit: 'plate', size: '~500g full meals', cal: 700, protein: 18, carbs: 100, fat: 22, fiber: 8 },
+  { name: 'Parotta (Plain)', cat: 'South Indian', serving: '1 piece', unit: 'piece', size: '~90g', cal: 260, protein: 5, carbs: 38, fat: 10, fiber: 1 },
+  { name: 'Mutton Kola Urundai', cat: 'South Indian', serving: '4 pieces', unit: 'piece', size: '~30g each', cal: 240, protein: 16, carbs: 12, fat: 14, fiber: 1 },
+  { name: 'Chicken Lollipop', cat: 'South Indian', serving: '4 pieces', unit: 'piece', size: '~40g each', cal: 280, protein: 18, carbs: 14, fat: 16, fiber: 1 },
+  { name: 'Nethili Fry (Anchovies)', cat: 'South Indian', serving: '100g', unit: 'g', size: '100g / 1 plate', cal: 200, protein: 18, carbs: 8, fat: 11, fiber: 0 },
+  { name: 'Meen Kulambu (Fish Curry)', cat: 'South Indian', serving: '200ml', unit: 'ml', size: '200ml / 1 cup', cal: 240, protein: 22, carbs: 10, fat: 13, fiber: 2 },
+  { name: 'Prawn Fry', cat: 'South Indian', serving: '100g', unit: 'g', size: '100g / ~8 pieces', cal: 220, protein: 20, carbs: 8, fat: 12, fiber: 0 },
+  { name: 'Crab Masala', cat: 'South Indian', serving: '200ml', unit: 'ml', size: '200ml / 1 cup', cal: 250, protein: 18, carbs: 8, fat: 16, fiber: 1 },
+  { name: 'Kaalan', cat: 'South Indian', serving: '200ml', unit: 'ml', size: '200ml / 1 cup', cal: 160, protein: 4, carbs: 14, fat: 10, fiber: 2 },
+  { name: 'Olan', cat: 'South Indian', serving: '200ml', unit: 'ml', size: '200ml / 1 cup', cal: 130, protein: 3, carbs: 12, fat: 8, fiber: 2 },
+
+  // --- North Indian ---
+  { name: 'Roti / Chapati', cat: 'North Indian', serving: '1 piece', unit: 'piece', size: '~35g', cal: 100, protein: 3, carbs: 18, fat: 2, fiber: 2 },
+  { name: 'Parotta (Kerala)', cat: 'North Indian', serving: '1 piece', unit: 'piece', size: '~90g', cal: 260, protein: 5, carbs: 38, fat: 10, fiber: 1 },
+  { name: 'Naan', cat: 'North Indian', serving: '1 piece', unit: 'piece', size: '~90g', cal: 260, protein: 8, carbs: 42, fat: 6, fiber: 2 },
+  { name: 'Butter Naan', cat: 'North Indian', serving: '1 piece', unit: 'piece', size: '~100g', cal: 320, protein: 8, carbs: 42, fat: 13, fiber: 2 },
+  { name: 'Aloo Paratha', cat: 'North Indian', serving: '1 piece', unit: 'piece', size: '~120g', cal: 300, protein: 7, carbs: 40, fat: 13, fiber: 3 },
+  { name: 'Chole Bhature', cat: 'North Indian', serving: '1 plate', unit: 'plate', size: '~350g', cal: 450, protein: 14, carbs: 55, fat: 20, fiber: 6 },
+  { name: 'Rajma Chawal', cat: 'North Indian', serving: '1 plate', unit: 'plate', size: '~400g', cal: 400, protein: 14, carbs: 60, fat: 10, fiber: 8 },
+  { name: 'Dal Makhani', cat: 'North Indian', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 230, protein: 10, carbs: 25, fat: 10, fiber: 5 },
+  { name: 'Paneer Butter Masala', cat: 'North Indian', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 350, protein: 15, carbs: 14, fat: 26, fiber: 2 },
+  { name: 'Palak Paneer', cat: 'North Indian', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 280, protein: 14, carbs: 10, fat: 20, fiber: 3 },
+  { name: 'Chicken Biryani', cat: 'North Indian', serving: '1 plate', unit: 'plate', size: '~350g', cal: 500, protein: 25, carbs: 55, fat: 18, fiber: 2 },
+  { name: 'Mutton Biryani', cat: 'North Indian', serving: '1 plate', unit: 'plate', size: '~350g', cal: 550, protein: 28, carbs: 55, fat: 22, fiber: 2 },
+  { name: 'Tandoori Chicken', cat: 'North Indian', serving: '2 pieces', unit: 'piece', size: '~80g each', cal: 260, protein: 30, carbs: 5, fat: 13, fiber: 1 },
+
+  // --- Rice & Meals ---
+  { name: 'White Rice', cat: 'Rice & Meals', serving: '150g', unit: 'g', size: '150g / 1 cup cooked', cal: 200, protein: 4, carbs: 44, fat: 0.5, fiber: 0.5 },
+  { name: 'Brown Rice', cat: 'Rice & Meals', serving: '150g', unit: 'g', size: '150g / 1 cup cooked', cal: 215, protein: 5, carbs: 45, fat: 1.5, fiber: 3 },
+  { name: 'Sambar Rice', cat: 'Rice & Meals', serving: '1 plate', unit: 'plate', size: '~350g', cal: 320, protein: 10, carbs: 52, fat: 8, fiber: 4 },
+  { name: 'Curd Rice', cat: 'Rice & Meals', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 210, protein: 6, carbs: 35, fat: 5, fiber: 1 },
+  { name: 'Lemon Rice', cat: 'Rice & Meals', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 250, protein: 5, carbs: 42, fat: 7, fiber: 1 },
+  { name: 'Tamarind Rice', cat: 'Rice & Meals', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 270, protein: 5, carbs: 45, fat: 8, fiber: 2 },
+  { name: 'Tomato Rice', cat: 'Rice & Meals', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 240, protein: 5, carbs: 40, fat: 7, fiber: 2 },
+  { name: 'Coconut Rice', cat: 'Rice & Meals', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 300, protein: 5, carbs: 42, fat: 13, fiber: 2 },
+  { name: 'Egg Fried Rice', cat: 'Rice & Meals', serving: '1 plate', unit: 'plate', size: '~300g', cal: 350, protein: 12, carbs: 48, fat: 12, fiber: 2 },
+  { name: 'Chicken Fried Rice', cat: 'Rice & Meals', serving: '1 plate', unit: 'plate', size: '~300g', cal: 400, protein: 18, carbs: 50, fat: 14, fiber: 2 },
+
+  // --- Gravies & Side Dishes ---
+  { name: 'Sambar', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 120, protein: 5, carbs: 16, fat: 4, fiber: 3 },
+  { name: 'Rasam', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 50, protein: 2, carbs: 8, fat: 1, fiber: 1 },
+  { name: 'Coconut Chutney', cat: 'Gravies', serving: '50g', unit: 'g', size: '50g / 2 tbsp', cal: 80, protein: 1, carbs: 4, fat: 7, fiber: 1 },
+  { name: 'Tomato Chutney', cat: 'Gravies', serving: '50g', unit: 'g', size: '50g / 2 tbsp', cal: 45, protein: 1, carbs: 6, fat: 2, fiber: 1 },
+  { name: 'Peanut Chutney', cat: 'Gravies', serving: '50g', unit: 'g', size: '50g / 2 tbsp', cal: 110, protein: 4, carbs: 5, fat: 9, fiber: 1 },
+  { name: 'Onion Chutney', cat: 'Gravies', serving: '50g', unit: 'g', size: '50g / 2 tbsp', cal: 40, protein: 1, carbs: 5, fat: 2, fiber: 1 },
+  { name: 'Mint Chutney', cat: 'Gravies', serving: '30g', unit: 'g', size: '30g / 1 tbsp', cal: 15, protein: 0.5, carbs: 2, fat: 0.5, fiber: 0.5 },
+  { name: 'Veg Kurma', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 200, protein: 5, carbs: 18, fat: 12, fiber: 3 },
+  { name: 'Chicken Kurma', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 300, protein: 22, carbs: 12, fat: 18, fiber: 2 },
+  { name: 'Egg Masala Gravy', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 220, protein: 12, carbs: 10, fat: 15, fiber: 2 },
+  { name: 'Potato Kurma', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 180, protein: 4, carbs: 22, fat: 9, fiber: 3 },
+  { name: 'Mushroom Gravy', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 160, protein: 5, carbs: 10, fat: 11, fiber: 2 },
+  { name: 'Kadai Paneer Gravy', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 320, protein: 14, carbs: 12, fat: 24, fiber: 2 },
+  { name: 'Chettinad Chicken Gravy', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 310, protein: 25, carbs: 8, fat: 20, fiber: 2 },
+  { name: 'Kara Kuzhambu', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 140, protein: 3, carbs: 12, fat: 9, fiber: 2 },
+  { name: 'Vathal Kuzhambu', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 130, protein: 2, carbs: 10, fat: 9, fiber: 2 },
+  { name: 'Poricha Kuzhambu', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 150, protein: 5, carbs: 14, fat: 8, fiber: 3 },
+  { name: 'Mor Kuzhambu', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 90, protein: 3, carbs: 8, fat: 5, fiber: 1 },
+  { name: 'Kootu', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 140, protein: 6, carbs: 14, fat: 6, fiber: 3 },
+  { name: 'Aviyal', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 160, protein: 4, carbs: 12, fat: 10, fiber: 4 },
+  { name: 'Poriyal / Stir Fry Veg', cat: 'Gravies', serving: '150g', unit: 'g', size: '150g / 1 cup', cal: 100, protein: 3, carbs: 10, fat: 6, fiber: 3 },
+  { name: 'Thogayal', cat: 'Gravies', serving: '30g', unit: 'g', size: '30g / 1 tbsp', cal: 50, protein: 2, carbs: 3, fat: 3, fiber: 1 },
+  { name: 'Dal Tadka', cat: 'Gravies', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 190, protein: 10, carbs: 24, fat: 6, fiber: 4 },
+  { name: 'Aloo Gobi', cat: 'Gravies', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 180, protein: 4, carbs: 20, fat: 9, fiber: 4 },
+  { name: 'Bhindi Masala', cat: 'Gravies', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 150, protein: 3, carbs: 12, fat: 10, fiber: 4 },
+  { name: 'Chana Masala', cat: 'Gravies', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 220, protein: 10, carbs: 30, fat: 7, fiber: 6 },
+  { name: 'Raita', cat: 'Gravies', serving: '100g', unit: 'g', size: '100g / small bowl', cal: 60, protein: 3, carbs: 5, fat: 3, fiber: 0.5 },
+
+  // --- Non-Veg ---
+  { name: 'Chicken Curry', cat: 'Non-Veg', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 280, protein: 24, carbs: 8, fat: 16, fiber: 2 },
+  { name: 'Egg Curry', cat: 'Non-Veg', serving: '200ml', unit: 'ml', size: '1 cup / 200ml (2 eggs)', cal: 240, protein: 14, carbs: 10, fat: 16, fiber: 2 },
+  { name: 'Fish Curry', cat: 'Non-Veg', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 220, protein: 22, carbs: 8, fat: 12, fiber: 1 },
+  { name: 'Mutton Curry', cat: 'Non-Veg', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 350, protein: 26, carbs: 8, fat: 24, fiber: 2 },
+  { name: 'Prawn Masala', cat: 'Non-Veg', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 200, protein: 20, carbs: 8, fat: 10, fiber: 1 },
+  { name: 'Chicken 65', cat: 'Non-Veg', serving: '6 pieces', unit: 'piece', size: '~25g each', cal: 320, protein: 22, carbs: 15, fat: 18, fiber: 1 },
+  { name: 'Egg Omelette', cat: 'Non-Veg', serving: '2 eggs', unit: 'egg', size: '~60g each', cal: 180, protein: 12, carbs: 2, fat: 14, fiber: 0 },
+  { name: 'Boiled Egg', cat: 'Non-Veg', serving: '1 egg', unit: 'egg', size: '~55g', cal: 75, protein: 6, carbs: 0.5, fat: 5, fiber: 0 },
+  { name: 'Chicken Kebab', cat: 'Non-Veg', serving: '4 pieces', unit: 'piece', size: '~30g each', cal: 220, protein: 24, carbs: 6, fat: 11, fiber: 1 },
+  { name: 'Fish Fry', cat: 'Non-Veg', serving: '1 piece', unit: 'piece', size: '~100g', cal: 200, protein: 18, carbs: 8, fat: 11, fiber: 0.5 },
+
+  // --- Snacks ---
+  { name: 'Samosa', cat: 'Snacks', serving: '1 piece', unit: 'piece', size: '~80g', cal: 180, protein: 3, carbs: 22, fat: 9, fiber: 1 },
+  { name: 'Bajji / Pakora', cat: 'Snacks', serving: '4 pieces', unit: 'piece', size: '~30g each', cal: 200, protein: 4, carbs: 20, fat: 12, fiber: 2 },
+  { name: 'Murukku', cat: 'Snacks', serving: '5 pieces', unit: 'piece', size: '~10g each', cal: 150, protein: 3, carbs: 18, fat: 7, fiber: 1 },
+  { name: 'Bonda', cat: 'Snacks', serving: '2 pieces', unit: 'piece', size: '~50g each', cal: 200, protein: 4, carbs: 24, fat: 10, fiber: 1 },
+  { name: 'Mixture', cat: 'Snacks', serving: '100g', unit: 'g', size: '100g / 1 cup', cal: 300, protein: 6, carbs: 30, fat: 18, fiber: 3 },
+  { name: 'Sundal', cat: 'Snacks', serving: '150g', unit: 'g', size: '150g / 1 cup', cal: 150, protein: 8, carbs: 22, fat: 3, fiber: 5 },
+  { name: 'Banana Chips', cat: 'Snacks', serving: '10 pieces', unit: 'piece', size: '~5g each', cal: 150, protein: 1, carbs: 18, fat: 8, fiber: 1 },
+  { name: 'Bread Toast (Butter)', cat: 'Snacks', serving: '2 slices', unit: 'slice', size: '~30g each', cal: 200, protein: 5, carbs: 26, fat: 8, fiber: 1 },
+
+  // --- Drinks ---
+  { name: 'Filter Coffee', cat: 'Drinks', serving: '150ml', unit: 'ml', size: '1 cup / 150ml', cal: 90, protein: 3, carbs: 10, fat: 4, fiber: 0 },
+  { name: 'Tea (Chai)', cat: 'Drinks', serving: '150ml', unit: 'ml', size: '1 cup / 150ml', cal: 70, protein: 2, carbs: 10, fat: 2, fiber: 0 },
+  { name: 'Buttermilk (Moru)', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 40, protein: 2, carbs: 4, fat: 1, fiber: 0 },
+  { name: 'Lassi (Sweet)', cat: 'Drinks', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 180, protein: 5, carbs: 28, fat: 5, fiber: 0 },
+  { name: 'Tender Coconut Water', cat: 'Drinks', serving: '300ml', unit: 'ml', size: '1 coconut / ~300ml', cal: 50, protein: 0.5, carbs: 10, fat: 0.5, fiber: 0 },
+  { name: 'Mango Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 140, protein: 1, carbs: 34, fat: 0.5, fiber: 1 },
+  { name: 'Protein Shake', cat: 'Drinks', serving: '1 scoop', unit: 'scoop', size: '~35g + 200ml milk', cal: 200, protein: 28, carbs: 12, fat: 4, fiber: 0 },
+  { name: 'Badam Milk', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 180, protein: 6, carbs: 22, fat: 7, fiber: 1 },
+
+  // --- Fruits ---
+  { name: 'Banana', cat: 'Fruits', serving: '1 piece', unit: 'piece', size: '~120g medium', cal: 105, protein: 1, carbs: 27, fat: 0.5, fiber: 3 },
+  { name: 'Apple', cat: 'Fruits', serving: '1 piece', unit: 'piece', size: '~180g medium', cal: 95, protein: 0.5, carbs: 25, fat: 0.5, fiber: 4 },
+  { name: 'Mango', cat: 'Fruits', serving: '150g', unit: 'g', size: '150g / 1 cup sliced', cal: 100, protein: 1, carbs: 25, fat: 0.5, fiber: 3 },
+  { name: 'Papaya', cat: 'Fruits', serving: '150g', unit: 'g', size: '150g / 1 cup cubed', cal: 60, protein: 1, carbs: 15, fat: 0.5, fiber: 2 },
+  { name: 'Watermelon', cat: 'Fruits', serving: '200g', unit: 'g', size: '200g / 1 cup cubed', cal: 46, protein: 1, carbs: 11, fat: 0.5, fiber: 0.5 },
+  { name: 'Grapes', cat: 'Fruits', serving: '150g', unit: 'g', size: '150g / 1 cup', cal: 62, protein: 1, carbs: 16, fat: 0.5, fiber: 1 },
+  { name: 'Pomegranate', cat: 'Fruits', serving: '175g', unit: 'g', size: '175g / 1 cup seeds', cal: 145, protein: 3, carbs: 33, fat: 2, fiber: 7 },
+  { name: 'Orange', cat: 'Fruits', serving: '1 piece', unit: 'piece', size: '~130g medium', cal: 62, protein: 1, carbs: 15, fat: 0.5, fiber: 3 },
+  { name: 'Guava', cat: 'Fruits', serving: '1 piece', unit: 'piece', size: '~100g medium', cal: 68, protein: 2.5, carbs: 14, fat: 1, fiber: 5 },
+
+  // --- Sweets / Desserts ---
+  { name: 'Payasam (Kheer)', cat: 'Sweets', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 250, protein: 5, carbs: 38, fat: 9, fiber: 1 },
+  { name: 'Gulab Jamun', cat: 'Sweets', serving: '2 pieces', unit: 'piece', size: '~40g each', cal: 300, protein: 4, carbs: 42, fat: 13, fiber: 0.5 },
+  { name: 'Jalebi', cat: 'Sweets', serving: '3 pieces', unit: 'piece', size: '~30g each', cal: 350, protein: 3, carbs: 55, fat: 13, fiber: 0 },
+  { name: 'Laddu (Boondi)', cat: 'Sweets', serving: '1 piece', unit: 'piece', size: '~50g', cal: 180, protein: 3, carbs: 25, fat: 8, fiber: 1 },
+  { name: 'Mysore Pak', cat: 'Sweets', serving: '1 piece', unit: 'piece', size: '~50g', cal: 200, protein: 3, carbs: 22, fat: 12, fiber: 1 },
+  { name: 'Halwa (Kesari)', cat: 'Sweets', serving: '150g', unit: 'g', size: '150g / 1 cup', cal: 280, protein: 3, carbs: 40, fat: 12, fiber: 0.5 },
+  { name: 'Ice Cream', cat: 'Sweets', serving: '1 scoop', unit: 'scoop', size: '~65g per scoop', cal: 140, protein: 2, carbs: 17, fat: 7, fiber: 0 },
+
+  // --- Protein Foods ---
+  { name: 'Paneer (Raw)', cat: 'Protein', serving: '100g', unit: 'g', size: '100g', cal: 265, protein: 18, carbs: 4, fat: 20, fiber: 0 },
+  { name: 'Chicken Breast (Grilled)', cat: 'Protein', serving: '100g', unit: 'g', size: '100g', cal: 165, protein: 31, carbs: 0, fat: 4, fiber: 0 },
+  { name: 'Soya Chunks', cat: 'Protein', serving: '150g', unit: 'g', size: '150g / 1 cup cooked', cal: 170, protein: 26, carbs: 10, fat: 2, fiber: 4 },
+  { name: 'Sprouts', cat: 'Protein', serving: '100g', unit: 'g', size: '100g / 1 cup', cal: 80, protein: 7, carbs: 12, fat: 0.5, fiber: 4 },
+  { name: 'Dal / Lentils', cat: 'Protein', serving: '200g', unit: 'g', size: '200g / 1 cup cooked', cal: 180, protein: 12, carbs: 28, fat: 2, fiber: 6 },
+  { name: 'Peanuts', cat: 'Protein', serving: '30g', unit: 'g', size: '30g / small handful', cal: 210, protein: 9, carbs: 6, fat: 18, fiber: 3 },
+  { name: 'Curd / Yogurt', cat: 'Protein', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 100, protein: 6, carbs: 8, fat: 5, fiber: 0 },
+  { name: 'Whey Protein (Concentrate)', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~32g per scoop', cal: 120, protein: 24, carbs: 3, fat: 1.5, fiber: 0 },
+  { name: 'Whey Protein (Isolate)', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~30g per scoop', cal: 110, protein: 27, carbs: 1, fat: 0.5, fiber: 0 },
+  { name: 'Whey Protein (Hydrolysed)', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~33g per scoop', cal: 120, protein: 28, carbs: 1, fat: 0.5, fiber: 0 },
+  { name: 'Casein Protein', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~33g per scoop', cal: 120, protein: 24, carbs: 3, fat: 1, fiber: 0 },
+  { name: 'Plant Protein (Pea)', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~35g per scoop', cal: 120, protein: 22, carbs: 4, fat: 2, fiber: 1 },
+  { name: 'Plant Protein (Soy)', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~30g per scoop', cal: 110, protein: 23, carbs: 2, fat: 1, fiber: 1 },
+  { name: 'Plant Protein (Rice)', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~33g per scoop', cal: 120, protein: 22, carbs: 4, fat: 1.5, fiber: 0.5 },
+  { name: 'Plant Protein (Hemp)', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~30g per scoop', cal: 120, protein: 15, carbs: 7, fat: 3, fiber: 5 },
+  { name: 'Blend Protein (Multi-Source)', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~35g per scoop', cal: 130, protein: 24, carbs: 4, fat: 2, fiber: 0.5 },
+  { name: 'Mass Gainer', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~75g per scoop', cal: 300, protein: 15, carbs: 50, fat: 5, fiber: 2 },
+  { name: 'BCAA Powder', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~10g per scoop', cal: 10, protein: 0, carbs: 2, fat: 0, fiber: 0 },
+  { name: 'EAA Powder', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~12g per scoop', cal: 15, protein: 0, carbs: 3, fat: 0, fiber: 0 },
+  { name: 'Creatine Monohydrate', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~5g per scoop', cal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+  { name: 'Pre-Workout Powder', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~12g per scoop', cal: 10, protein: 0, carbs: 2, fat: 0, fiber: 0 },
+  { name: 'Glutamine Powder', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~5g per scoop', cal: 20, protein: 5, carbs: 0, fat: 0, fiber: 0 },
+  { name: 'Collagen Peptides', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~15g per scoop', cal: 55, protein: 13, carbs: 0, fat: 0, fiber: 0 },
+  { name: 'Egg White Protein Powder', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~30g per scoop', cal: 110, protein: 24, carbs: 2, fat: 0, fiber: 0 },
+  { name: 'Sattu Powder', cat: 'Protein', serving: '30g', unit: 'g', size: '30g / 2 tbsp', cal: 110, protein: 6, carbs: 18, fat: 2, fiber: 3 },
+  { name: 'Peanut Protein Powder', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~32g per scoop', cal: 130, protein: 20, carbs: 6, fat: 4, fiber: 2 },
+  { name: 'Tofu', cat: 'Protein', serving: '100g', unit: 'g', size: '100g', cal: 76, protein: 8, carbs: 2, fat: 4, fiber: 0.5 },
+  { name: 'Cottage Cheese', cat: 'Protein', serving: '100g', unit: 'g', size: '100g', cal: 98, protein: 11, carbs: 3, fat: 4, fiber: 0 },
+  { name: 'Greek Yogurt', cat: 'Protein', serving: '150g', unit: 'g', size: '150g / 1 cup', cal: 130, protein: 15, carbs: 6, fat: 5, fiber: 0 },
+  { name: 'Casein Protein', cat: 'Protein', serving: '1 scoop', unit: 'scoop', size: '~33g per scoop', cal: 120, protein: 24, carbs: 3, fat: 1, fiber: 0 },
+  { name: 'Egg White (Boiled)', cat: 'Protein', serving: '3 whites', unit: 'piece', size: '~33g each', cal: 51, protein: 11, carbs: 0.5, fat: 0, fiber: 0 },
+
+  // --- Indo-Chinese ---
+  { name: 'Gobi Manchurian (Dry)', cat: 'Chinese', serving: '200g', unit: 'g', size: '200g / 1 plate', cal: 280, protein: 5, carbs: 28, fat: 16, fiber: 3 },
+  { name: 'Gobi Manchurian (Gravy)', cat: 'Chinese', serving: '200ml', unit: 'ml', size: '200ml / 1 bowl', cal: 310, protein: 5, carbs: 32, fat: 18, fiber: 3 },
+  { name: 'Chicken Manchurian', cat: 'Chinese', serving: '200g', unit: 'g', size: '200g / 1 plate', cal: 350, protein: 20, carbs: 22, fat: 20, fiber: 1 },
+  { name: 'Veg Noodles', cat: 'Chinese', serving: '1 plate', unit: 'plate', size: '~250g', cal: 300, protein: 8, carbs: 42, fat: 12, fiber: 3 },
+  { name: 'Chicken Noodles', cat: 'Chinese', serving: '1 plate', unit: 'plate', size: '~280g', cal: 380, protein: 18, carbs: 44, fat: 14, fiber: 2 },
+  { name: 'Egg Noodles', cat: 'Chinese', serving: '1 plate', unit: 'plate', size: '~260g', cal: 340, protein: 12, carbs: 42, fat: 13, fiber: 2 },
+  { name: 'Veg Fried Rice', cat: 'Chinese', serving: '1 plate', unit: 'plate', size: '~280g', cal: 310, protein: 7, carbs: 48, fat: 10, fiber: 3 },
+  { name: 'Schezwan Fried Rice', cat: 'Chinese', serving: '1 plate', unit: 'plate', size: '~280g', cal: 370, protein: 9, carbs: 50, fat: 14, fiber: 2 },
+  { name: 'Paneer Chilli', cat: 'Chinese', serving: '200g', unit: 'g', size: '200g / 1 plate', cal: 350, protein: 16, carbs: 14, fat: 26, fiber: 2 },
+  { name: 'Chilli Chicken', cat: 'Chinese', serving: '200g', unit: 'g', size: '200g / 1 plate', cal: 320, protein: 22, carbs: 16, fat: 18, fiber: 1 },
+  { name: 'Spring Roll (Veg)', cat: 'Chinese', serving: '2 pieces', unit: 'piece', size: '~60g each', cal: 200, protein: 4, carbs: 24, fat: 10, fiber: 2 },
+  { name: 'Momos (Veg)', cat: 'Chinese', serving: '6 pieces', unit: 'piece', size: '~25g each', cal: 210, protein: 6, carbs: 30, fat: 7, fiber: 2 },
+  { name: 'Momos (Chicken)', cat: 'Chinese', serving: '6 pieces', unit: 'piece', size: '~30g each', cal: 260, protein: 14, carbs: 28, fat: 10, fiber: 1 },
+  { name: 'Sweet Corn Soup', cat: 'Chinese', serving: '200ml', unit: 'ml', size: '1 bowl / 200ml', cal: 110, protein: 3, carbs: 18, fat: 3, fiber: 1 },
+  { name: 'Hot & Sour Soup', cat: 'Chinese', serving: '200ml', unit: 'ml', size: '1 bowl / 200ml', cal: 90, protein: 4, carbs: 12, fat: 3, fiber: 1 },
+  { name: 'Manchow Soup', cat: 'Chinese', serving: '200ml', unit: 'ml', size: '1 bowl / 200ml', cal: 120, protein: 4, carbs: 16, fat: 4, fiber: 1 },
+  { name: 'Dragon Chicken', cat: 'Chinese', serving: '200g', unit: 'g', size: '200g / 1 plate', cal: 340, protein: 22, carbs: 18, fat: 20, fiber: 1 },
+  { name: 'Szechuan Noodles', cat: 'Chinese', serving: '1 plate', unit: 'plate', size: '~260g', cal: 360, protein: 10, carbs: 46, fat: 14, fiber: 2 },
+  { name: 'Crispy Corn', cat: 'Chinese', serving: '150g', unit: 'g', size: '150g / 1 plate', cal: 250, protein: 4, carbs: 30, fat: 13, fiber: 2 },
+  { name: 'Veg Manchurian', cat: 'Chinese', serving: '200g', unit: 'g', size: '200g / 1 plate', cal: 260, protein: 5, carbs: 26, fat: 15, fiber: 2 },
+
+  // --- Fast Food ---
+  { name: 'Burger (Veg)', cat: 'Fast Food', serving: '1 piece', unit: 'piece', size: '~180g', cal: 350, protein: 10, carbs: 40, fat: 16, fiber: 3 },
+  { name: 'Burger (Chicken)', cat: 'Fast Food', serving: '1 piece', unit: 'piece', size: '~200g', cal: 420, protein: 22, carbs: 38, fat: 20, fiber: 2 },
+  { name: 'Pizza Slice (Veg)', cat: 'Fast Food', serving: '1 slice', unit: 'slice', size: '~120g', cal: 270, protein: 10, carbs: 32, fat: 11, fiber: 2 },
+  { name: 'Pizza Slice (Non-Veg)', cat: 'Fast Food', serving: '1 slice', unit: 'slice', size: '~130g', cal: 310, protein: 14, carbs: 32, fat: 14, fiber: 2 },
+  { name: 'French Fries', cat: 'Fast Food', serving: '100g', unit: 'g', size: '100g / medium', cal: 310, protein: 3, carbs: 38, fat: 15, fiber: 3 },
+  { name: 'Fried Chicken (KFC style)', cat: 'Fast Food', serving: '1 piece', unit: 'piece', size: '~100g', cal: 260, protein: 18, carbs: 12, fat: 16, fiber: 0 },
+  { name: 'Chicken Wings', cat: 'Fast Food', serving: '4 pieces', unit: 'piece', size: '~30g each', cal: 280, protein: 20, carbs: 6, fat: 20, fiber: 0 },
+  { name: 'Chicken Nuggets', cat: 'Fast Food', serving: '6 pieces', unit: 'piece', size: '~18g each', cal: 280, protein: 14, carbs: 18, fat: 16, fiber: 1 },
+  { name: 'Wrap / Roll (Chicken)', cat: 'Fast Food', serving: '1 piece', unit: 'piece', size: '~200g', cal: 380, protein: 18, carbs: 36, fat: 18, fiber: 2 },
+  { name: 'Wrap / Roll (Paneer)', cat: 'Fast Food', serving: '1 piece', unit: 'piece', size: '~200g', cal: 360, protein: 14, carbs: 36, fat: 18, fiber: 2 },
+  { name: 'Hot Dog', cat: 'Fast Food', serving: '1 piece', unit: 'piece', size: '~150g', cal: 290, protein: 10, carbs: 24, fat: 17, fiber: 1 },
+  { name: 'Shawarma (Chicken)', cat: 'Fast Food', serving: '1 piece', unit: 'piece', size: '~250g', cal: 450, protein: 24, carbs: 40, fat: 22, fiber: 2 },
+  { name: 'Subway (6 inch Veg)', cat: 'Fast Food', serving: '1 sub', unit: 'piece', size: '~220g', cal: 300, protein: 12, carbs: 42, fat: 8, fiber: 4 },
+  { name: 'Subway (6 inch Chicken)', cat: 'Fast Food', serving: '1 sub', unit: 'piece', size: '~240g', cal: 370, protein: 22, carbs: 42, fat: 12, fiber: 3 },
+  { name: 'Tacos (Chicken)', cat: 'Fast Food', serving: '2 pieces', unit: 'piece', size: '~100g each', cal: 340, protein: 18, carbs: 28, fat: 16, fiber: 3 },
+  { name: 'Nachos with Cheese', cat: 'Fast Food', serving: '150g', unit: 'g', size: '150g', cal: 380, protein: 8, carbs: 36, fat: 22, fiber: 3 },
+  { name: 'Onion Rings', cat: 'Fast Food', serving: '100g', unit: 'g', size: '100g / 6 rings', cal: 260, protein: 3, carbs: 30, fat: 14, fiber: 1 },
+
+  // --- Street Food ---
+  { name: 'Pani Puri / Golgappa', cat: 'Street Food', serving: '6 pieces', unit: 'piece', size: '~20g each', cal: 180, protein: 3, carbs: 30, fat: 5, fiber: 2 },
+  { name: 'Bhel Puri', cat: 'Street Food', serving: '150g', unit: 'g', size: '150g / 1 plate', cal: 200, protein: 5, carbs: 30, fat: 7, fiber: 3 },
+  { name: 'Sev Puri', cat: 'Street Food', serving: '6 pieces', unit: 'piece', size: '~25g each', cal: 220, protein: 4, carbs: 28, fat: 10, fiber: 2 },
+  { name: 'Dahi Puri', cat: 'Street Food', serving: '6 pieces', unit: 'piece', size: '~30g each', cal: 240, protein: 5, carbs: 30, fat: 10, fiber: 2 },
+  { name: 'Pav Bhaji', cat: 'Street Food', serving: '1 plate', unit: 'plate', size: '~350g', cal: 400, protein: 10, carbs: 52, fat: 16, fiber: 5 },
+  { name: 'Vada Pav', cat: 'Street Food', serving: '1 piece', unit: 'piece', size: '~150g', cal: 290, protein: 6, carbs: 38, fat: 12, fiber: 2 },
+  { name: 'Dahi Vada', cat: 'Street Food', serving: '2 pieces', unit: 'piece', size: '~80g each', cal: 250, protein: 8, carbs: 28, fat: 12, fiber: 2 },
+  { name: 'Aloo Tikki', cat: 'Street Food', serving: '2 pieces', unit: 'piece', size: '~70g each', cal: 240, protein: 4, carbs: 30, fat: 12, fiber: 2 },
+  { name: 'Kachori', cat: 'Street Food', serving: '1 piece', unit: 'piece', size: '~80g', cal: 250, protein: 5, carbs: 28, fat: 13, fiber: 2 },
+  { name: 'Egg Roll (Kolkata)', cat: 'Street Food', serving: '1 piece', unit: 'piece', size: '~200g', cal: 350, protein: 14, carbs: 35, fat: 17, fiber: 2 },
+  { name: 'Chicken Roll', cat: 'Street Food', serving: '1 piece', unit: 'piece', size: '~220g', cal: 400, protein: 18, carbs: 36, fat: 20, fiber: 2 },
+  { name: 'Corn on the Cob', cat: 'Street Food', serving: '1 piece', unit: 'piece', size: '~150g', cal: 130, protein: 4, carbs: 24, fat: 2, fiber: 3 },
+  { name: 'Masala Corn Cup', cat: 'Street Food', serving: '150g', unit: 'g', size: '150g / 1 cup', cal: 160, protein: 4, carbs: 26, fat: 5, fiber: 3 },
+  { name: 'Dabeli', cat: 'Street Food', serving: '1 piece', unit: 'piece', size: '~130g', cal: 260, protein: 5, carbs: 36, fat: 10, fiber: 3 },
+  { name: 'Misal Pav', cat: 'Street Food', serving: '1 plate', unit: 'plate', size: '~300g', cal: 380, protein: 14, carbs: 48, fat: 14, fiber: 6 },
+  { name: 'Poha', cat: 'Street Food', serving: '200g', unit: 'g', size: '200g / 1 plate', cal: 250, protein: 5, carbs: 40, fat: 8, fiber: 2 },
+
+  // --- Bakery ---
+  { name: 'White Bread', cat: 'Bakery', serving: '1 slice', unit: 'slice', size: '~30g', cal: 80, protein: 3, carbs: 14, fat: 1, fiber: 1 },
+  { name: 'Brown Bread', cat: 'Bakery', serving: '1 slice', unit: 'slice', size: '~30g', cal: 75, protein: 3, carbs: 13, fat: 1, fiber: 2 },
+  { name: 'Multigrain Bread', cat: 'Bakery', serving: '1 slice', unit: 'slice', size: '~35g', cal: 80, protein: 4, carbs: 14, fat: 1, fiber: 2 },
+  { name: 'Croissant', cat: 'Bakery', serving: '1 piece', unit: 'piece', size: '~60g', cal: 230, protein: 5, carbs: 26, fat: 12, fiber: 1 },
+  { name: 'Puff (Veg)', cat: 'Bakery', serving: '1 piece', unit: 'piece', size: '~80g', cal: 240, protein: 4, carbs: 24, fat: 14, fiber: 1 },
+  { name: 'Puff (Egg)', cat: 'Bakery', serving: '1 piece', unit: 'piece', size: '~90g', cal: 270, protein: 8, carbs: 24, fat: 15, fiber: 1 },
+  { name: 'Puff (Chicken)', cat: 'Bakery', serving: '1 piece', unit: 'piece', size: '~90g', cal: 280, protein: 10, carbs: 24, fat: 16, fiber: 1 },
+  { name: 'Muffin (Chocolate)', cat: 'Bakery', serving: '1 piece', unit: 'piece', size: '~80g', cal: 300, protein: 5, carbs: 40, fat: 14, fiber: 1 },
+  { name: 'Cake Slice', cat: 'Bakery', serving: '1 slice', unit: 'slice', size: '~80g', cal: 280, protein: 4, carbs: 36, fat: 14, fiber: 0.5 },
+  { name: 'Cookie', cat: 'Bakery', serving: '2 pieces', unit: 'piece', size: '~30g each', cal: 180, protein: 2, carbs: 24, fat: 8, fiber: 0.5 },
+  { name: 'Donut', cat: 'Bakery', serving: '1 piece', unit: 'piece', size: '~60g', cal: 250, protein: 3, carbs: 30, fat: 13, fiber: 1 },
+  { name: 'Bun (Sweet)', cat: 'Bakery', serving: '1 piece', unit: 'piece', size: '~60g', cal: 180, protein: 4, carbs: 30, fat: 5, fiber: 1 },
+  { name: 'Brownie', cat: 'Bakery', serving: '1 piece', unit: 'piece', size: '~60g', cal: 260, protein: 3, carbs: 32, fat: 14, fiber: 1 },
+  { name: 'Rusk', cat: 'Bakery', serving: '2 pieces', unit: 'piece', size: '~20g each', cal: 140, protein: 3, carbs: 22, fat: 4, fiber: 1 },
+  { name: 'Dilkush / Tutti Frutti Bread', cat: 'Bakery', serving: '1 piece', unit: 'piece', size: '~60g', cal: 190, protein: 4, carbs: 30, fat: 6, fiber: 1 },
+  { name: 'Pancake', cat: 'Bakery', serving: '2 pieces', unit: 'piece', size: '~60g each', cal: 280, protein: 6, carbs: 36, fat: 12, fiber: 1 },
+  { name: 'Waffle', cat: 'Bakery', serving: '1 piece', unit: 'piece', size: '~75g', cal: 250, protein: 5, carbs: 30, fat: 12, fiber: 1 },
+
+  // --- Continental / Western ---
+  { name: 'Pasta (Red Sauce)', cat: 'Continental', serving: '1 plate', unit: 'plate', size: '~300g', cal: 380, protein: 12, carbs: 55, fat: 12, fiber: 4 },
+  { name: 'Pasta (White Sauce)', cat: 'Continental', serving: '1 plate', unit: 'plate', size: '~300g', cal: 450, protein: 14, carbs: 50, fat: 22, fiber: 2 },
+  { name: 'Pasta (Pesto)', cat: 'Continental', serving: '1 plate', unit: 'plate', size: '~300g', cal: 420, protein: 13, carbs: 48, fat: 20, fiber: 3 },
+  { name: 'Mac & Cheese', cat: 'Continental', serving: '1 plate', unit: 'plate', size: '~250g', cal: 400, protein: 15, carbs: 40, fat: 20, fiber: 2 },
+  { name: 'Grilled Chicken Salad', cat: 'Continental', serving: '1 plate', unit: 'plate', size: '~300g', cal: 250, protein: 28, carbs: 10, fat: 12, fiber: 4 },
+  { name: 'Caesar Salad', cat: 'Continental', serving: '1 plate', unit: 'plate', size: '~250g', cal: 300, protein: 10, carbs: 14, fat: 22, fiber: 3 },
+  { name: 'Greek Salad', cat: 'Continental', serving: '1 plate', unit: 'plate', size: '~250g', cal: 200, protein: 6, carbs: 10, fat: 15, fiber: 3 },
+  { name: 'Mushroom Soup', cat: 'Continental', serving: '200ml', unit: 'ml', size: '1 bowl / 200ml', cal: 150, protein: 4, carbs: 12, fat: 10, fiber: 1 },
+  { name: 'Tomato Soup', cat: 'Continental', serving: '200ml', unit: 'ml', size: '1 bowl / 200ml', cal: 100, protein: 2, carbs: 16, fat: 3, fiber: 2 },
+  { name: 'Garlic Bread', cat: 'Continental', serving: '2 pieces', unit: 'piece', size: '~40g each', cal: 220, protein: 5, carbs: 26, fat: 10, fiber: 1 },
+  { name: 'Bruschetta', cat: 'Continental', serving: '3 pieces', unit: 'piece', size: '~30g each', cal: 180, protein: 4, carbs: 22, fat: 8, fiber: 2 },
+  { name: 'Steak (Grilled)', cat: 'Continental', serving: '200g', unit: 'g', size: '200g', cal: 400, protein: 50, carbs: 0, fat: 22, fiber: 0 },
+  { name: 'Fish & Chips', cat: 'Continental', serving: '1 plate', unit: 'plate', size: '~300g', cal: 500, protein: 22, carbs: 45, fat: 26, fiber: 3 },
+  { name: 'Grilled Salmon', cat: 'Continental', serving: '150g', unit: 'g', size: '150g / 1 fillet', cal: 280, protein: 34, carbs: 0, fat: 16, fiber: 0 },
+  { name: 'Scrambled Eggs', cat: 'Continental', serving: '2 eggs', unit: 'egg', size: '~60g each + butter', cal: 200, protein: 13, carbs: 2, fat: 16, fiber: 0 },
+  { name: 'Oatmeal / Porridge', cat: 'Continental', serving: '200g', unit: 'g', size: '200g / 1 bowl', cal: 160, protein: 6, carbs: 28, fat: 3, fiber: 4 },
+  { name: 'Avocado Toast', cat: 'Continental', serving: '1 piece', unit: 'piece', size: '~150g', cal: 250, protein: 6, carbs: 20, fat: 16, fiber: 5 },
+  { name: 'Sandwich (Veg)', cat: 'Continental', serving: '1 piece', unit: 'piece', size: '~180g', cal: 280, protein: 8, carbs: 34, fat: 12, fiber: 3 },
+  { name: 'Sandwich (Chicken)', cat: 'Continental', serving: '1 piece', unit: 'piece', size: '~200g', cal: 350, protein: 20, carbs: 32, fat: 15, fiber: 2 },
+  { name: 'Club Sandwich', cat: 'Continental', serving: '1 piece', unit: 'piece', size: '~250g', cal: 450, protein: 22, carbs: 38, fat: 24, fiber: 2 },
+
+  // --- International ---
+  { name: 'Sushi Roll', cat: 'International', serving: '6 pieces', unit: 'piece', size: '~30g each', cal: 250, protein: 10, carbs: 38, fat: 6, fiber: 2 },
+  { name: 'Sashimi (Salmon)', cat: 'International', serving: '5 pieces', unit: 'piece', size: '~20g each', cal: 140, protein: 20, carbs: 0, fat: 6, fiber: 0 },
+  { name: 'Ramen', cat: 'International', serving: '1 bowl', unit: 'bowl', size: '~500ml', cal: 450, protein: 18, carbs: 55, fat: 16, fiber: 2 },
+  { name: 'Pad Thai', cat: 'International', serving: '1 plate', unit: 'plate', size: '~300g', cal: 400, protein: 14, carbs: 50, fat: 16, fiber: 2 },
+  { name: 'Thai Green Curry', cat: 'International', serving: '200ml', unit: 'ml', size: '200ml / 1 cup', cal: 280, protein: 16, carbs: 10, fat: 20, fiber: 2 },
+  { name: 'Tom Yum Soup', cat: 'International', serving: '200ml', unit: 'ml', size: '200ml / 1 bowl', cal: 100, protein: 8, carbs: 8, fat: 4, fiber: 1 },
+  { name: 'Burrito', cat: 'International', serving: '1 piece', unit: 'piece', size: '~300g', cal: 500, protein: 20, carbs: 55, fat: 20, fiber: 6 },
+  { name: 'Quesadilla', cat: 'International', serving: '1 piece', unit: 'piece', size: '~200g', cal: 380, protein: 16, carbs: 30, fat: 22, fiber: 2 },
+  { name: 'Hummus', cat: 'International', serving: '100g', unit: 'g', size: '100g / small bowl', cal: 170, protein: 8, carbs: 14, fat: 10, fiber: 6 },
+  { name: 'Falafel', cat: 'International', serving: '4 pieces', unit: 'piece', size: '~30g each', cal: 220, protein: 8, carbs: 22, fat: 12, fiber: 3 },
+  { name: 'Pita Bread', cat: 'International', serving: '1 piece', unit: 'piece', size: '~60g', cal: 170, protein: 6, carbs: 32, fat: 2, fiber: 2 },
+  { name: 'Bibimbap', cat: 'International', serving: '1 bowl', unit: 'bowl', size: '~400g', cal: 500, protein: 22, carbs: 60, fat: 18, fiber: 4 },
+  { name: 'Kimchi', cat: 'International', serving: '50g', unit: 'g', size: '50g / small bowl', cal: 15, protein: 1, carbs: 2, fat: 0.5, fiber: 1 },
+  { name: 'Korean Fried Chicken', cat: 'International', serving: '4 pieces', unit: 'piece', size: '~50g each', cal: 400, protein: 24, carbs: 20, fat: 26, fiber: 1 },
+  { name: 'Gyoza / Dumpling', cat: 'International', serving: '6 pieces', unit: 'piece', size: '~25g each', cal: 240, protein: 10, carbs: 26, fat: 10, fiber: 1 },
+  { name: 'Fried Rice (Thai)', cat: 'International', serving: '1 plate', unit: 'plate', size: '~280g', cal: 380, protein: 12, carbs: 50, fat: 14, fiber: 2 },
+  { name: 'Butter Croissant Sandwich', cat: 'International', serving: '1 piece', unit: 'piece', size: '~150g', cal: 380, protein: 14, carbs: 30, fat: 24, fiber: 1 },
+  { name: 'Baklava', cat: 'International', serving: '2 pieces', unit: 'piece', size: '~40g each', cal: 260, protein: 4, carbs: 28, fat: 16, fiber: 1 },
+
+  // --- Dairy ---
+  { name: 'Milk (Full Fat)', cat: 'Dairy', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 160, protein: 8, carbs: 12, fat: 9, fiber: 0 },
+  { name: 'Milk (Toned)', cat: 'Dairy', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 120, protein: 8, carbs: 12, fat: 5, fiber: 0 },
+  { name: 'Milk (Skimmed)', cat: 'Dairy', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 85, protein: 8, carbs: 12, fat: 0.5, fiber: 0 },
+  { name: 'Cheese Slice', cat: 'Dairy', serving: '1 slice', unit: 'slice', size: '~20g', cal: 60, protein: 4, carbs: 1, fat: 5, fiber: 0 },
+  { name: 'Cheese (Cheddar)', cat: 'Dairy', serving: '30g', unit: 'g', size: '30g / 1 cube', cal: 120, protein: 7, carbs: 0.5, fat: 10, fiber: 0 },
+  { name: 'Mozzarella', cat: 'Dairy', serving: '30g', unit: 'g', size: '30g', cal: 85, protein: 6, carbs: 1, fat: 6, fiber: 0 },
+  { name: 'Cream Cheese', cat: 'Dairy', serving: '30g', unit: 'g', size: '30g / 1 tbsp', cal: 100, protein: 2, carbs: 1, fat: 10, fiber: 0 },
+  { name: 'Butter', cat: 'Dairy', serving: '10g', unit: 'g', size: '10g / 1 tsp', cal: 72, protein: 0, carbs: 0, fat: 8, fiber: 0 },
+  { name: 'Ghee', cat: 'Dairy', serving: '10g', unit: 'g', size: '10g / 1 tsp', cal: 90, protein: 0, carbs: 0, fat: 10, fiber: 0 },
+  { name: 'Paneer Tikka', cat: 'Dairy', serving: '150g', unit: 'g', size: '150g / 6 cubes', cal: 300, protein: 20, carbs: 6, fat: 22, fiber: 1 },
+  { name: 'Milkshake (Chocolate)', cat: 'Dairy', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 350, protein: 10, carbs: 50, fat: 12, fiber: 1 },
+  { name: 'Milkshake (Strawberry)', cat: 'Dairy', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 300, protein: 8, carbs: 45, fat: 10, fiber: 1 },
+
+  // --- Nuts & Seeds ---
+  { name: 'Almonds', cat: 'Nuts & Seeds', serving: '30g', unit: 'g', size: '30g / ~23 nuts', cal: 170, protein: 6, carbs: 6, fat: 15, fiber: 3 },
+  { name: 'Cashews', cat: 'Nuts & Seeds', serving: '30g', unit: 'g', size: '30g / ~18 nuts', cal: 160, protein: 5, carbs: 9, fat: 13, fiber: 1 },
+  { name: 'Walnuts', cat: 'Nuts & Seeds', serving: '30g', unit: 'g', size: '30g / ~7 halves', cal: 190, protein: 4, carbs: 4, fat: 18, fiber: 2 },
+  { name: 'Pistachios', cat: 'Nuts & Seeds', serving: '30g', unit: 'g', size: '30g / ~49 nuts', cal: 160, protein: 6, carbs: 8, fat: 13, fiber: 3 },
+  { name: 'Dried Dates (Khajoor)', cat: 'Nuts & Seeds', serving: '3 pieces', unit: 'piece', size: '~25g each', cal: 200, protein: 2, carbs: 48, fat: 0.5, fiber: 5 },
+  { name: 'Raisins (Kishmish)', cat: 'Nuts & Seeds', serving: '30g', unit: 'g', size: '30g / small handful', cal: 90, protein: 1, carbs: 22, fat: 0, fiber: 1 },
+  { name: 'Flax Seeds', cat: 'Nuts & Seeds', serving: '15g', unit: 'g', size: '15g / 1 tbsp', cal: 80, protein: 3, carbs: 4, fat: 6, fiber: 4 },
+  { name: 'Chia Seeds', cat: 'Nuts & Seeds', serving: '15g', unit: 'g', size: '15g / 1 tbsp', cal: 70, protein: 2, carbs: 6, fat: 4, fiber: 5 },
+  { name: 'Sunflower Seeds', cat: 'Nuts & Seeds', serving: '30g', unit: 'g', size: '30g / 2 tbsp', cal: 170, protein: 6, carbs: 6, fat: 15, fiber: 2 },
+  { name: 'Pumpkin Seeds', cat: 'Nuts & Seeds', serving: '30g', unit: 'g', size: '30g / 2 tbsp', cal: 160, protein: 8, carbs: 4, fat: 14, fiber: 2 },
+  { name: 'Mixed Dry Fruits', cat: 'Nuts & Seeds', serving: '30g', unit: 'g', size: '30g / small handful', cal: 160, protein: 5, carbs: 10, fat: 12, fiber: 2 },
+  { name: 'Trail Mix', cat: 'Nuts & Seeds', serving: '40g', unit: 'g', size: '40g / small pack', cal: 200, protein: 5, carbs: 18, fat: 12, fiber: 2 },
+  { name: 'Coconut (Fresh)', cat: 'Nuts & Seeds', serving: '50g', unit: 'g', size: '50g / few pieces', cal: 175, protein: 2, carbs: 7, fat: 17, fiber: 4 },
+
+  // --- Millets & Healthy ---
+  { name: 'Oats', cat: 'Millets & Healthy', serving: '40g', unit: 'g', size: '40g dry / 1 cup cooked', cal: 150, protein: 5, carbs: 27, fat: 3, fiber: 4 },
+  { name: 'Ragi Dosa', cat: 'Millets & Healthy', serving: '1 piece', unit: 'piece', size: '~100g', cal: 130, protein: 4, carbs: 22, fat: 3, fiber: 3 },
+  { name: 'Ragi Porridge', cat: 'Millets & Healthy', serving: '200g', unit: 'g', size: '200g / 1 bowl', cal: 180, protein: 5, carbs: 32, fat: 3, fiber: 4 },
+  { name: 'Ragi Mudde', cat: 'Millets & Healthy', serving: '1 piece', unit: 'piece', size: '~120g', cal: 150, protein: 4, carbs: 30, fat: 1, fiber: 4 },
+  { name: 'Jowar Roti', cat: 'Millets & Healthy', serving: '1 piece', unit: 'piece', size: '~50g', cal: 110, protein: 3, carbs: 22, fat: 1, fiber: 2 },
+  { name: 'Bajra Roti', cat: 'Millets & Healthy', serving: '1 piece', unit: 'piece', size: '~50g', cal: 120, protein: 3, carbs: 24, fat: 1.5, fiber: 2 },
+  { name: 'Foxtail Millet Rice', cat: 'Millets & Healthy', serving: '150g', unit: 'g', size: '150g / 1 cup cooked', cal: 170, protein: 5, carbs: 32, fat: 2, fiber: 3 },
+  { name: 'Quinoa', cat: 'Millets & Healthy', serving: '150g', unit: 'g', size: '150g / 1 cup cooked', cal: 180, protein: 7, carbs: 30, fat: 3, fiber: 4 },
+  { name: 'Muesli', cat: 'Millets & Healthy', serving: '50g', unit: 'g', size: '50g dry', cal: 200, protein: 5, carbs: 32, fat: 6, fiber: 4 },
+  { name: 'Granola', cat: 'Millets & Healthy', serving: '50g', unit: 'g', size: '50g', cal: 230, protein: 5, carbs: 30, fat: 10, fiber: 3 },
+  { name: 'Smoothie Bowl', cat: 'Millets & Healthy', serving: '300g', unit: 'g', size: '300g / 1 bowl', cal: 280, protein: 8, carbs: 45, fat: 8, fiber: 5 },
+  { name: 'Chia Pudding', cat: 'Millets & Healthy', serving: '200g', unit: 'g', size: '200g / 1 cup', cal: 200, protein: 6, carbs: 22, fat: 10, fiber: 8 },
+  { name: 'Overnight Oats', cat: 'Millets & Healthy', serving: '200g', unit: 'g', size: '200g / 1 jar', cal: 250, protein: 8, carbs: 35, fat: 8, fiber: 5 },
+  { name: 'Peanut Butter Toast', cat: 'Millets & Healthy', serving: '1 slice', unit: 'slice', size: '~50g total', cal: 200, protein: 8, carbs: 16, fat: 12, fiber: 2 },
+  { name: 'Protein Bar', cat: 'Millets & Healthy', serving: '1 bar', unit: 'bar', size: '~60g', cal: 220, protein: 20, carbs: 22, fat: 8, fiber: 3 },
+  { name: 'Energy Ball', cat: 'Millets & Healthy', serving: '2 pieces', unit: 'piece', size: '~25g each', cal: 140, protein: 4, carbs: 16, fat: 7, fiber: 2 },
+
+  // --- Vegetables (Cooked) ---
+  { name: 'Potato (Boiled)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g / 1 medium', cal: 87, protein: 2, carbs: 20, fat: 0, fiber: 2 },
+  { name: 'Sweet Potato (Boiled)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g / 1 small', cal: 90, protein: 2, carbs: 21, fat: 0, fiber: 3 },
+  { name: 'Broccoli (Cooked)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g / 1 cup', cal: 35, protein: 3, carbs: 7, fat: 0.5, fiber: 3 },
+  { name: 'Spinach (Cooked)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g / 1 cup', cal: 23, protein: 3, carbs: 4, fat: 0.5, fiber: 2 },
+  { name: 'Carrot (Raw)', cat: 'Vegetables', serving: '1 piece', unit: 'piece', size: '~80g medium', cal: 35, protein: 1, carbs: 8, fat: 0, fiber: 2 },
+  { name: 'Cucumber', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g / half', cal: 15, protein: 1, carbs: 3, fat: 0, fiber: 0.5 },
+  { name: 'Tomato', cat: 'Vegetables', serving: '1 piece', unit: 'piece', size: '~120g medium', cal: 22, protein: 1, carbs: 5, fat: 0, fiber: 1 },
+  { name: 'Onion', cat: 'Vegetables', serving: '1 piece', unit: 'piece', size: '~100g medium', cal: 40, protein: 1, carbs: 9, fat: 0, fiber: 1 },
+  { name: 'Beetroot (Cooked)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g', cal: 44, protein: 2, carbs: 10, fat: 0, fiber: 2 },
+  { name: 'Cauliflower (Cooked)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g / 1 cup', cal: 25, protein: 2, carbs: 5, fat: 0.5, fiber: 2 },
+  { name: 'Green Beans (Cooked)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g / 1 cup', cal: 35, protein: 2, carbs: 7, fat: 0.5, fiber: 3 },
+  { name: 'Cabbage (Cooked)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g', cal: 25, protein: 1, carbs: 6, fat: 0, fiber: 2 },
+  { name: 'Ladies Finger / Okra', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g', cal: 33, protein: 2, carbs: 7, fat: 0, fiber: 3 },
+  { name: 'Mushroom (Cooked)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g / 1 cup', cal: 28, protein: 3, carbs: 4, fat: 0.5, fiber: 1 },
+  { name: 'Capsicum', cat: 'Vegetables', serving: '1 piece', unit: 'piece', size: '~120g medium', cal: 30, protein: 1, carbs: 6, fat: 0.5, fiber: 2 },
+  { name: 'Corn (Boiled)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g', cal: 96, protein: 3, carbs: 21, fat: 1, fiber: 2 },
+  { name: 'Green Peas', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g / 1 cup', cal: 80, protein: 5, carbs: 14, fat: 0.5, fiber: 5 },
+  { name: 'Drumstick / Moringa', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g / 2 sticks', cal: 37, protein: 2, carbs: 8, fat: 0, fiber: 2 },
+  { name: 'Bitter Gourd (Pavakkai)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g', cal: 20, protein: 1, carbs: 4, fat: 0, fiber: 2 },
+  { name: 'Bottle Gourd (Sorakkai)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g', cal: 15, protein: 1, carbs: 3, fat: 0, fiber: 1 },
+  { name: 'Ridge Gourd (Peerkangai)', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g', cal: 18, protein: 1, carbs: 3, fat: 0, fiber: 2 },
+  { name: 'Avocado', cat: 'Vegetables', serving: '100g', unit: 'g', size: '100g / half', cal: 160, protein: 2, carbs: 9, fat: 15, fiber: 7 },
+  { name: 'Lettuce', cat: 'Vegetables', serving: '50g', unit: 'g', size: '50g / few leaves', cal: 8, protein: 1, carbs: 1, fat: 0, fiber: 1 },
+
+  // --- More Sweets ---
+  { name: 'Rasgulla', cat: 'Sweets', serving: '2 pieces', unit: 'piece', size: '~40g each', cal: 180, protein: 4, carbs: 30, fat: 4, fiber: 0 },
+  { name: 'Rasmalai', cat: 'Sweets', serving: '2 pieces', unit: 'piece', size: '~50g each', cal: 260, protein: 6, carbs: 32, fat: 12, fiber: 0 },
+  { name: 'Kaju Katli', cat: 'Sweets', serving: '2 pieces', unit: 'piece', size: '~20g each', cal: 180, protein: 3, carbs: 20, fat: 10, fiber: 0.5 },
+  { name: 'Peda', cat: 'Sweets', serving: '2 pieces', unit: 'piece', size: '~25g each', cal: 170, protein: 4, carbs: 22, fat: 7, fiber: 0 },
+  { name: 'Barfi (Milk)', cat: 'Sweets', serving: '1 piece', unit: 'piece', size: '~40g', cal: 150, protein: 3, carbs: 20, fat: 7, fiber: 0 },
+  { name: 'Adhirasam', cat: 'Sweets', serving: '1 piece', unit: 'piece', size: '~50g', cal: 200, protein: 2, carbs: 32, fat: 7, fiber: 1 },
+  { name: 'Badusha', cat: 'Sweets', serving: '1 piece', unit: 'piece', size: '~60g', cal: 240, protein: 3, carbs: 30, fat: 12, fiber: 0.5 },
+  { name: 'Chocolate (Dark)', cat: 'Sweets', serving: '30g', unit: 'g', size: '30g / 3 squares', cal: 155, protein: 2, carbs: 14, fat: 10, fiber: 2 },
+  { name: 'Chocolate (Milk)', cat: 'Sweets', serving: '30g', unit: 'g', size: '30g / 3 squares', cal: 160, protein: 2, carbs: 17, fat: 9, fiber: 0.5 },
+
+  // --- More Drinks ---
+  { name: 'Cold Coffee', cat: 'Drinks', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 200, protein: 5, carbs: 30, fat: 7, fiber: 0 },
+  { name: 'Green Tea', cat: 'Drinks', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 2, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+  { name: 'Black Coffee', cat: 'Drinks', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 5, protein: 0.5, carbs: 0, fat: 0, fiber: 0 },
+  { name: 'Lemonade / Nimbu Pani', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 50, protein: 0, carbs: 12, fat: 0, fiber: 0 },
+  { name: 'Sugarcane Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 180, protein: 0, carbs: 44, fat: 0, fiber: 0 },
+  { name: 'Orange Juice (Fresh)', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 110, protein: 2, carbs: 26, fat: 0.5, fiber: 0.5 },
+  { name: 'Pomegranate Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 130, protein: 1, carbs: 32, fat: 0.5, fiber: 0 },
+  { name: 'Coconut Milk', cat: 'Drinks', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 230, protein: 2, carbs: 6, fat: 24, fiber: 0 },
+  { name: 'Almond Milk', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 40, protein: 1, carbs: 2, fat: 3, fiber: 0.5 },
+  { name: 'Soy Milk', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 80, protein: 7, carbs: 4, fat: 4, fiber: 1 },
+  { name: 'Coke / Pepsi', cat: 'Drinks', serving: '330ml', unit: 'ml', size: '1 can / 330ml', cal: 140, protein: 0, carbs: 35, fat: 0, fiber: 0 },
+  { name: 'Diet Coke / Zero', cat: 'Drinks', serving: '330ml', unit: 'ml', size: '1 can / 330ml', cal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 },
+  { name: 'Energy Drink', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 can / 250ml', cal: 110, protein: 0, carbs: 28, fat: 0, fiber: 0 },
+  { name: 'Beer', cat: 'Drinks', serving: '330ml', unit: 'ml', size: '1 bottle / 330ml', cal: 150, protein: 1, carbs: 13, fat: 0, fiber: 0 },
+  { name: 'Wine (Red)', cat: 'Drinks', serving: '150ml', unit: 'ml', size: '1 glass / 150ml', cal: 125, protein: 0, carbs: 4, fat: 0, fiber: 0 },
+  { name: 'Jigarthanda', cat: 'Drinks', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 280, protein: 5, carbs: 42, fat: 10, fiber: 0 },
+  { name: 'Rose Milk', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 160, protein: 5, carbs: 24, fat: 5, fiber: 0 },
+  { name: 'Nannari Sherbet', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 100, protein: 0, carbs: 25, fat: 0, fiber: 0 },
+  { name: 'Apple Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 115, protein: 0.5, carbs: 28, fat: 0, fiber: 0.5 },
+  { name: 'Grape Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 150, protein: 1, carbs: 36, fat: 0, fiber: 0.5 },
+  { name: 'Pineapple Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 130, protein: 1, carbs: 32, fat: 0, fiber: 0.5 },
+  { name: 'Watermelon Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 70, protein: 1, carbs: 17, fat: 0, fiber: 0.5 },
+  { name: 'Papaya Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 90, protein: 1, carbs: 22, fat: 0, fiber: 1 },
+  { name: 'Guava Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 110, protein: 1, carbs: 26, fat: 0.5, fiber: 2 },
+  { name: 'Carrot Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 95, protein: 2, carbs: 22, fat: 0.5, fiber: 2 },
+  { name: 'Beetroot Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 100, protein: 2, carbs: 22, fat: 0, fiber: 1 },
+  { name: 'ABC Juice (Apple Beetroot Carrot)', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 100, protein: 2, carbs: 24, fat: 0, fiber: 2 },
+  { name: 'Mixed Fruit Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 120, protein: 1, carbs: 28, fat: 0.5, fiber: 1 },
+  { name: 'Mosambi / Sweet Lime Juice', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 100, protein: 1, carbs: 24, fat: 0, fiber: 0.5 },
+  { name: 'Amla Juice', cat: 'Drinks', serving: '100ml', unit: 'ml', size: '100ml / small glass', cal: 30, protein: 0.5, carbs: 7, fat: 0, fiber: 1 },
+  { name: 'Aloe Vera Juice', cat: 'Drinks', serving: '100ml', unit: 'ml', size: '100ml / small glass', cal: 15, protein: 0, carbs: 4, fat: 0, fiber: 0 },
+  { name: 'Mango Lassi', cat: 'Drinks', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 220, protein: 6, carbs: 36, fat: 6, fiber: 1 },
+  { name: 'Salt Lassi', cat: 'Drinks', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 80, protein: 5, carbs: 6, fat: 4, fiber: 0 },
+  { name: 'Paneer Soda', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 120, protein: 0, carbs: 30, fat: 0, fiber: 0 },
+  { name: 'Ginger Tea', cat: 'Drinks', serving: '150ml', unit: 'ml', size: '1 cup / 150ml', cal: 65, protein: 2, carbs: 10, fat: 2, fiber: 0 },
+  { name: 'Masala Chai', cat: 'Drinks', serving: '150ml', unit: 'ml', size: '1 cup / 150ml', cal: 75, protein: 2, carbs: 12, fat: 2, fiber: 0 },
+  { name: 'Jaljeera', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 30, protein: 0.5, carbs: 7, fat: 0, fiber: 0 },
+  { name: 'Aam Panna', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 90, protein: 0.5, carbs: 22, fat: 0, fiber: 0.5 },
+  { name: 'Thandai', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 200, protein: 5, carbs: 28, fat: 8, fiber: 1 },
+  { name: 'Banana Shake', cat: 'Drinks', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 240, protein: 8, carbs: 38, fat: 7, fiber: 2 },
+  { name: 'Dry Fruit Shake', cat: 'Drinks', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 320, protein: 10, carbs: 40, fat: 14, fiber: 2 },
+  { name: 'Avocado Smoothie', cat: 'Drinks', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 250, protein: 5, carbs: 22, fat: 16, fiber: 5 },
+  { name: 'Berry Smoothie', cat: 'Drinks', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 180, protein: 4, carbs: 34, fat: 4, fiber: 4 },
+  { name: 'Mango Smoothie', cat: 'Drinks', serving: '300ml', unit: 'ml', size: '1 glass / 300ml', cal: 200, protein: 4, carbs: 40, fat: 4, fiber: 2 },
+  { name: 'Sathu Maavu Kanji', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 200, protein: 6, carbs: 36, fat: 4, fiber: 3 },
+  { name: 'Kambu Koozh', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 160, protein: 4, carbs: 30, fat: 3, fiber: 3 },
+  { name: 'Ragi Malt', cat: 'Drinks', serving: '250ml', unit: 'ml', size: '1 glass / 250ml', cal: 180, protein: 5, carbs: 34, fat: 3, fiber: 3 },
+  { name: 'Sukku Coffee', cat: 'Drinks', serving: '150ml', unit: 'ml', size: '1 cup / 150ml', cal: 60, protein: 1, carbs: 12, fat: 1, fiber: 0 },
+  { name: 'Elaneer Payasam', cat: 'Drinks', serving: '200ml', unit: 'ml', size: '1 cup / 200ml', cal: 180, protein: 3, carbs: 28, fat: 6, fiber: 1 },
+
+  // --- More Fruits ---
+  { name: 'Pineapple', cat: 'Fruits', serving: '150g', unit: 'g', size: '150g / 1 cup', cal: 75, protein: 1, carbs: 20, fat: 0, fiber: 2 },
+  { name: 'Strawberry', cat: 'Fruits', serving: '150g', unit: 'g', size: '150g / 1 cup', cal: 48, protein: 1, carbs: 12, fat: 0.5, fiber: 3 },
+  { name: 'Blueberry', cat: 'Fruits', serving: '100g', unit: 'g', size: '100g / small cup', cal: 57, protein: 1, carbs: 14, fat: 0.5, fiber: 2 },
+  { name: 'Kiwi', cat: 'Fruits', serving: '1 piece', unit: 'piece', size: '~75g', cal: 42, protein: 1, carbs: 10, fat: 0.5, fiber: 2 },
+  { name: 'Lychee', cat: 'Fruits', serving: '100g', unit: 'g', size: '100g / ~10 pieces', cal: 66, protein: 1, carbs: 17, fat: 0.5, fiber: 1 },
+  { name: 'Chikoo / Sapota', cat: 'Fruits', serving: '1 piece', unit: 'piece', size: '~100g medium', cal: 83, protein: 0.5, carbs: 20, fat: 1, fiber: 5 },
+  { name: 'Jackfruit', cat: 'Fruits', serving: '100g', unit: 'g', size: '100g / 4-5 pods', cal: 95, protein: 2, carbs: 23, fat: 0.5, fiber: 2 },
+  { name: 'Dragon Fruit', cat: 'Fruits', serving: '1 piece', unit: 'piece', size: '~200g medium', cal: 60, protein: 1, carbs: 13, fat: 0.5, fiber: 3 },
+  { name: 'Fig (Anjeer) Fresh', cat: 'Fruits', serving: '2 pieces', unit: 'piece', size: '~50g each', cal: 74, protein: 1, carbs: 19, fat: 0.5, fiber: 3 },
+  { name: 'Custard Apple (Sitaphal)', cat: 'Fruits', serving: '100g', unit: 'g', size: '100g pulp', cal: 100, protein: 2, carbs: 25, fat: 0.5, fiber: 4 },
+  { name: 'Pear', cat: 'Fruits', serving: '1 piece', unit: 'piece', size: '~180g medium', cal: 100, protein: 1, carbs: 27, fat: 0, fiber: 6 },
+  { name: 'Plum', cat: 'Fruits', serving: '2 pieces', unit: 'piece', size: '~65g each', cal: 60, protein: 1, carbs: 14, fat: 0.5, fiber: 2 },
+  { name: 'Amla / Gooseberry', cat: 'Fruits', serving: '2 pieces', unit: 'piece', size: '~30g each', cal: 28, protein: 0.5, carbs: 6, fat: 0, fiber: 3 },
+
+  // --- Condiments & Extras ---
+  { name: 'Honey', cat: 'Extras', serving: '15g', unit: 'g', size: '15g / 1 tbsp', cal: 45, protein: 0, carbs: 12, fat: 0, fiber: 0 },
+  { name: 'Sugar', cat: 'Extras', serving: '10g', unit: 'g', size: '10g / 2 tsp', cal: 40, protein: 0, carbs: 10, fat: 0, fiber: 0 },
+  { name: 'Jaggery', cat: 'Extras', serving: '15g', unit: 'g', size: '15g / 1 small piece', cal: 55, protein: 0, carbs: 14, fat: 0, fiber: 0 },
+  { name: 'Coconut Oil', cat: 'Extras', serving: '10ml', unit: 'ml', size: '10ml / 1 tsp', cal: 90, protein: 0, carbs: 0, fat: 10, fiber: 0 },
+  { name: 'Olive Oil', cat: 'Extras', serving: '10ml', unit: 'ml', size: '10ml / 1 tsp', cal: 88, protein: 0, carbs: 0, fat: 10, fiber: 0 },
+  { name: 'Pickle (Indian)', cat: 'Extras', serving: '15g', unit: 'g', size: '15g / 1 tsp', cal: 30, protein: 0.5, carbs: 2, fat: 2, fiber: 0.5 },
+  { name: 'Papad (Roasted)', cat: 'Extras', serving: '1 piece', unit: 'piece', size: '~15g', cal: 45, protein: 3, carbs: 7, fat: 0.5, fiber: 1 },
+  { name: 'Papad (Fried)', cat: 'Extras', serving: '1 piece', unit: 'piece', size: '~18g', cal: 75, protein: 3, carbs: 7, fat: 4, fiber: 1 },
+  { name: 'Ketchup', cat: 'Extras', serving: '15g', unit: 'g', size: '15g / 1 tbsp', cal: 20, protein: 0, carbs: 5, fat: 0, fiber: 0 },
+  { name: 'Mayonnaise', cat: 'Extras', serving: '15g', unit: 'g', size: '15g / 1 tbsp', cal: 100, protein: 0, carbs: 0.5, fat: 11, fiber: 0 },
+  { name: 'Soy Sauce', cat: 'Extras', serving: '15ml', unit: 'ml', size: '15ml / 1 tbsp', cal: 10, protein: 1, carbs: 1, fat: 0, fiber: 0 },
+  { name: 'Peanut Butter', cat: 'Extras', serving: '30g', unit: 'g', size: '30g / 2 tbsp', cal: 190, protein: 7, carbs: 6, fat: 16, fiber: 2 },
+  { name: 'Nutella', cat: 'Extras', serving: '30g', unit: 'g', size: '30g / 2 tbsp', cal: 160, protein: 2, carbs: 18, fat: 9, fiber: 1 },
+  { name: 'Jam', cat: 'Extras', serving: '20g', unit: 'g', size: '20g / 1 tbsp', cal: 50, protein: 0, carbs: 13, fat: 0, fiber: 0 },
+  { name: 'Maple Syrup', cat: 'Extras', serving: '20ml', unit: 'ml', size: '20ml / 1 tbsp', cal: 52, protein: 0, carbs: 13, fat: 0, fiber: 0 },
+];
+
+const FOOD_CATEGORIES = ['All', ...new Set(FOOD_DB.map(f => f.cat))];
+
+// ==================== APP STATE ====================
+const PRESETS = ['Bench Press','Squat','Deadlift','Overhead Press','Barbell Row','Pull Up','Push Up','Bicep Curl','Tricep Dip','Leg Press','Lat Pulldown','Plank'];
+
+const DB = {
+  get(key) { try { return JSON.parse(localStorage.getItem('fitlog_' + key)) || []; } catch { return []; } },
+  set(key, val) { localStorage.setItem('fitlog_' + key, JSON.stringify(val)); }
+};
+
+let weightChart = null;
+let selectedFood = null;
+let activeFoodCat = 'All';
+let currentMealSlot = 'Breakfast';
+
+// ==================== INIT ====================
+function init() {
+  renderPresets();
+  renderFoodCategoryTabs();
+  updateDashboard();
+  renderStreakBar();
+  renderRecentWorkouts();
+  renderWeightChart();
+  renderWeightHistory();
+  renderAllWorkouts();
+  updateHeaderSub();
+  updateMacroSummary();
+  renderTodayFoodLog();
+  renderHomeSleep();
+  renderHomePRs();
+  document.getElementById('exerciseName').addEventListener('input', updateCalEstimate);
+  document.getElementById('exerciseDuration').addEventListener('input', updateCalEstimate);
+}
+
+function updateHeaderSub() {
+  const d = new Date();
+  document.getElementById('headerSub').textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+// ==================== TAB SWITCHING ====================
+function switchTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.getElementById('page' + name).classList.add('active');
+  const tabs = document.querySelectorAll('.tab-item');
+  const idx = { Dashboard: 0, Log: 1, Food: 2, Weight: 3, More: 4, Diet: -1 }[name];
+  if (idx >= 0) tabs[idx].classList.add('active');
+  const titles = { Dashboard: 'Dashboard', Log: 'Log Workout', Food: 'Food Tracker', Weight: 'Body Weight', More: 'More', Diet: 'Diet Plan' };
+  document.getElementById('pageTitle').textContent = titles[name];
+
+  if (name === 'Dashboard') { updateDashboard(); renderStreakBar(); renderRecentWorkouts(); renderHomeSleep(); renderHomePRs(); }
+  else if (name === 'Log') { renderTemplates(); renderAllWorkouts(); }
+  else if (name === 'Food') { updateMacroSummary(); renderTodayFoodLog(); }
+  else if (name === 'Weight') { renderWeightChart(); renderWeightHistory(); loadGoals(); }
+  else if (name === 'More') { renderSleepHistory(); renderMeasHistory(); loadProfile(); updateBMI(); renderNotifStatus(); }
+  else if (name === 'Diet') { }
+}
+
+// ==================== WORKOUT FUNCTIONS ====================
+function renderPresets() {
+  document.getElementById('presetChips').innerHTML = PRESETS.map(p =>
+    `<button class="preset-chip" onclick="selectPreset(this,'${p}')">${p}</button>`
+  ).join('');
+}
+
+function selectPreset(el, name) {
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('exerciseName').value = name;
+  updateCalEstimate();
+}
+
+function getCaloriesPerMin(name) {
+  const n = name.toLowerCase();
+  if (n.includes('run') || n.includes('sprint')) return 12;
+  if (n.includes('jump') || n.includes('burpee') || n.includes('skipping') || n.includes('rope')) return 11;
+  if (n.includes('cycling') || n.includes('bike')) return 9;
+  if (n.includes('swim')) return 10;
+  if (n.includes('row')) return 8;
+  if (n.includes('squat') || n.includes('deadlift') || n.includes('leg press') || n.includes('lunge')) return 8;
+  if (n.includes('bench') || n.includes('chest') || n.includes('push')) return 7;
+  if (n.includes('pull') || n.includes('lat') || n.includes('back')) return 7;
+  if (n.includes('overhead') || n.includes('shoulder') || n.includes('press')) return 6;
+  if (n.includes('curl') || n.includes('bicep') || n.includes('tricep') || n.includes('arm')) return 5;
+  if (n.includes('plank') || n.includes('core') || n.includes('ab') || n.includes('crunch')) return 5;
+  if (n.includes('yoga') || n.includes('stretch')) return 4;
+  if (n.includes('walk')) return 5;
+  if (n.includes('cardio') || n.includes('hiit') || n.includes('circuit')) return 10;
+  if (n.includes('boxing') || n.includes('kickbox')) return 11;
+  if (n.includes('dance') || n.includes('zumba')) return 8;
+  if (n.includes('cricket') || n.includes('badminton') || n.includes('tennis')) return 7;
+  if (n.includes('football') || n.includes('soccer') || n.includes('basketball')) return 9;
+  return 6;
+}
+
+function updateCalEstimate() {
+  const name = document.getElementById('exerciseName').value.trim();
+  const duration = parseInt(document.getElementById('exerciseDuration').value) || 0;
+  const el = document.getElementById('calEstimate');
+  if (name && duration > 0) {
+    const cpm = getCaloriesPerMin(name);
+    const burned = Math.round(cpm * duration);
+    el.textContent = '🔥 Estimated burn: ~' + burned + ' cal (' + cpm + ' cal/min × ' + duration + ' min)';
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function logWorkout() {
+  const name = document.getElementById('exerciseName').value.trim();
+  const sets = parseInt(document.getElementById('exerciseSets').value) || 0;
+  const reps = parseInt(document.getElementById('exerciseReps').value) || 0;
+  const weight = parseFloat(document.getElementById('exerciseWeight').value) || 0;
+  const duration = parseInt(document.getElementById('exerciseDuration').value) || 0;
+  if (!name) { showToast('Enter an exercise name'); return; }
+  if (!sets || !reps) { showToast('Enter sets and reps'); return; }
+
+  const cpm = getCaloriesPerMin(name);
+  const calsBurned = duration > 0 ? Math.round(cpm * duration) : Math.round(cpm * sets * reps * 0.15);
+
+  const workouts = DB.get('workouts');
+  workouts.unshift({ id: Date.now(), name, sets, reps, weight, duration, calsBurned, date: new Date().toISOString(), volume: sets * reps * weight });
+  DB.set('workouts', workouts);
+  document.getElementById('exerciseName').value = '';
+  document.getElementById('exerciseSets').value = '';
+  document.getElementById('exerciseReps').value = '';
+  document.getElementById('exerciseWeight').value = '';
+  document.getElementById('exerciseDuration').value = '';
+  document.getElementById('calEstimate').style.display = 'none';
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('selected'));
+  showToast('Workout logged! 💪 ' + calsBurned + ' cal burned');
+}
+
+function logWeight() {
+  const w = parseFloat(document.getElementById('weightInput').value);
+  if (!w || w <= 0) { showToast('Enter a valid weight'); return; }
+  const weights = DB.get('weights');
+  const today = new Date().toISOString().split('T')[0];
+  const existing = weights.findIndex(e => e.date === today);
+  if (existing >= 0) weights[existing].value = w; else weights.push({ date: today, value: w });
+  weights.sort((a, b) => a.date.localeCompare(b.date));
+  DB.set('weights', weights);
+  document.getElementById('weightInput').value = '';
+  renderWeightChart(); renderWeightHistory();
+  showToast('Weight saved! ⚖️');
+}
+
+// ==================== FOOD TRACKER ====================
+function renderFoodCategoryTabs() {
+  document.getElementById('foodCatTabs').innerHTML = FOOD_CATEGORIES.map(c =>
+    `<button class="food-cat-chip ${c === activeFoodCat ? 'active' : ''}" onclick="setFoodCat('${c}')">${c}</button>`
+  ).join('');
+}
+
+function setFoodCat(cat) {
+  activeFoodCat = cat;
+  renderFoodCategoryTabs();
+  const q = document.getElementById('foodSearch').value.trim();
+  if (q.length > 0) searchFood(q);
+}
+
+function setMealSlot(el, slot) {
+  currentMealSlot = slot;
+  document.querySelectorAll('#mealSlotTabs .food-cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function setupFoodSearch() {
+  const input = document.getElementById('foodSearch');
+  const results = document.getElementById('foodResults');
+
+  input.addEventListener('input', function() {
+    const q = this.value.trim();
+    if (q.length < 1) { results.classList.remove('show'); return; }
+    searchFood(q);
+  });
+
+  input.addEventListener('focus', function() {
+    if (this.value.trim().length >= 1) searchFood(this.value.trim());
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.food-search-wrap')) results.classList.remove('show');
+  });
+}
+
+function searchFood(query) {
+  const results = document.getElementById('foodResults');
+  const q = query.toLowerCase();
+  let matches = FOOD_DB.filter(f => {
+    const nameMatch = f.name.toLowerCase().includes(q);
+    const catMatch = activeFoodCat === 'All' || f.cat === activeFoodCat;
+    return nameMatch && catMatch;
+  }).slice(0, 8);
+
+  if (!matches.length) {
+    results.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text-secondary);font-size:13px">No results found. You can type a custom food name.</div>';
+    results.classList.add('show');
+    return;
+  }
+
+  results.innerHTML = matches.map((f, i) =>
+    `<div class="food-result-item" onclick="selectFood(${i}, '${q}')">
+      <div class="food-result-name">${highlightMatch(f.name, q)}</div>
+      <div class="food-result-meta">${f.cal} cal · P: ${f.protein}g · C: ${f.carbs}g · F: ${f.fat}g · per ${f.size}</div>
+    </div>`
+  ).join('');
+  results.classList.add('show');
+  results._matches = matches;
+}
+
+function highlightMatch(name, q) {
+  const idx = name.toLowerCase().indexOf(q);
+  if (idx < 0) return esc(name);
+  return esc(name.slice(0, idx)) + '<strong style="color:var(--accent)">' + esc(name.slice(idx, idx + q.length)) + '</strong>' + esc(name.slice(idx + q.length));
+}
+
+function selectFood(idx, q) {
+  const results = document.getElementById('foodResults');
+  const matches = results._matches;
+  if (!matches || !matches[idx]) return;
+
+  selectedFood = matches[idx];
+  document.getElementById('foodSearch').value = selectedFood.name;
+  results.classList.remove('show');
+
+  const card = document.getElementById('foodSelected');
+  card.classList.add('show');
+  document.getElementById('selectedFoodName').textContent = selectedFood.name;
+  document.getElementById('selectedFoodPer').textContent =
+    `Per ${selectedFood.size}: ${selectedFood.cal} cal · P: ${selectedFood.protein}g · C: ${selectedFood.carbs}g · F: ${selectedFood.fat}g · Fiber: ${selectedFood.fiber}g`;
+  document.getElementById('foodQtyLabel').textContent = 'Qty (' + selectedFood.unit + ')';
+}
+
+function clearFoodSelection() {
+  selectedFood = null;
+  document.getElementById('foodSearch').value = '';
+  document.getElementById('foodSelected').classList.remove('show');
+  document.getElementById('foodQtyLabel').textContent = 'Qty (servings)';
+}
+
+function logFood() {
+  if (!selectedFood) { showToast('Select a food first'); return; }
+  const qty = parseFloat(document.getElementById('foodQty').value) || 1;
+
+  const foods = DB.get('foods');
+  foods.unshift({
+    id: Date.now(),
+    name: selectedFood.name,
+    serving: selectedFood.serving,
+    unit: selectedFood.unit,
+    size: selectedFood.size,
+    meal: currentMealSlot,
+    qty,
+    cal: Math.round(selectedFood.cal * qty),
+    protein: Math.round(selectedFood.protein * qty * 10) / 10,
+    carbs: Math.round(selectedFood.carbs * qty * 10) / 10,
+    fat: Math.round(selectedFood.fat * qty * 10) / 10,
+    fiber: Math.round(selectedFood.fiber * qty * 10) / 10,
+    date: new Date().toISOString()
+  });
+  DB.set('foods', foods);
+
+  clearFoodSelection();
+  document.getElementById('foodQty').value = '1';
+  updateMacroSummary();
+  renderTodayFoodLog();
+  showToast('Food added! 🍽️');
+}
+
+function getTodayFoods() {
+  const today = new Date().toISOString().split('T')[0];
+  return DB.get('foods').filter(f => f.date.startsWith(today));
+}
+
+function updateMacroSummary() {
+  const foods = getTodayFoods();
+  const totals = foods.reduce((s, f) => ({
+    cal: s.cal + f.cal,
+    protein: s.protein + f.protein,
+    carbs: s.carbs + f.carbs,
+    fat: s.fat + f.fat,
+    fiber: s.fiber + f.fiber
+  }), { cal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+
+  document.getElementById('dayCals').textContent = Math.round(totals.cal);
+  document.getElementById('dayProtein').textContent = Math.round(totals.protein) + 'g';
+  document.getElementById('dayCarbs').textContent = Math.round(totals.carbs) + 'g';
+  document.getElementById('dayFat').textContent = Math.round(totals.fat) + 'g';
+  document.getElementById('dayFiber').textContent = Math.round(totals.fiber) + 'g';
+
+  const goals = { protein: 120, carbs: 250, fat: 65, fiber: 30 };
+  document.getElementById('barProtein').style.width = Math.min(100, (totals.protein / goals.protein) * 100) + '%';
+  document.getElementById('barCarbs').style.width = Math.min(100, (totals.carbs / goals.carbs) * 100) + '%';
+  document.getElementById('barFat').style.width = Math.min(100, (totals.fat / goals.fat) * 100) + '%';
+  document.getElementById('barFiber').style.width = Math.min(100, (totals.fiber / goals.fiber) * 100) + '%';
+
+  document.getElementById('todayCals').textContent = Math.round(totals.cal);
+}
+
+function renderTodayFoodLog() {
+  const foods = getTodayFoods();
+  const c = document.getElementById('mealWiseFoodLog');
+
+  const MEAL_SLOTS = [
+    { key: 'Breakfast', emoji: '🌅', time: '7:00 - 8:00 AM' },
+    { key: 'Morning Snack', emoji: '🍎', time: '10:00 - 10:30 AM' },
+    { key: 'Lunch', emoji: '☀️', time: '12:30 - 1:30 PM' },
+    { key: 'Evening Snack', emoji: '🫖', time: '4:00 - 5:00 PM' },
+    { key: 'Dinner', emoji: '🌙', time: '7:30 - 8:30 PM' },
+  ];
+
+  const grouped = {};
+  foods.forEach(f => {
+    const slot = f.meal || 'Breakfast';
+    if (!grouped[slot]) grouped[slot] = [];
+    grouped[slot].push(f);
+  });
+
+  const expanded = getMealExpanded();
+
+  let html = '';
+  MEAL_SLOTS.forEach((slot, si) => {
+    const items = grouped[slot.key] || [];
+    const slotCals = items.reduce((s, f) => s + f.cal, 0);
+    const slotP = items.reduce((s, f) => s + f.protein, 0);
+    const hasItems = items.length > 0;
+    const isOpen = expanded[si];
+
+    html += `<div class="meal-card animate-in" style="animation-delay:${si * 0.05}s;margin-bottom:10px">
+      <div class="meal-header" onclick="toggleMealExpand(${si})" style="cursor:pointer">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">${slot.emoji}</span>
+          <div>
+            <div class="meal-title" style="font-size:15px">${slot.key}</div>
+            <div class="meal-time">${slot.time}${hasItems ? ' · ' + items.length + ' item' + (items.length > 1 ? 's' : '') : ''}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="text-align:right">
+            <div class="meal-cals">${hasItems ? slotCals + ' cal' : '—'}</div>
+            ${hasItems ? '<div style="font-size:10px;color:var(--text-secondary)">P: ' + Math.round(slotP) + 'g</div>' : ''}
+          </div>
+          <span style="font-size:14px;color:var(--text-secondary);transition:transform 0.3s;display:inline-block;transform:rotate(${isOpen ? '180' : '0'}deg)">▼</span>
+        </div>
+      </div>
+      <div id="mealBody${si}" style="display:${isOpen ? 'block' : 'none'}">`;
+
+    if (hasItems) {
+      items.forEach(f => {
+        html += `<div class="meal-item">
+          <div class="meal-item-name">${esc(f.name)}${f.qty !== 1 ? ' × ' + f.qty : ''}</div>
+          <div class="meal-item-qty">${f.cal} cal</div>
+          <button class="meal-item-swap" onclick="deleteFood(${f.id})">✕</button>
+        </div>`;
+      });
+    }
+
+    html += `<div id="foodAddSlot${si}"></div>`;
+    html += `<button class="btn btn-secondary" onclick="openMealAddFood(${si},'${slot.key}')" style="margin-top:8px;padding:10px;font-size:13px">+ Add to ${slot.key}</button>`;
+    html += '</div></div>';
+  });
+
+  c.innerHTML = html;
+}
+
+function getMealExpanded() {
+  try { return JSON.parse(sessionStorage.getItem('fitlog_meal_expanded')) || {}; } catch { return {}; }
+}
+
+function toggleMealExpand(idx) {
+  const expanded = getMealExpanded();
+  expanded[idx] = !expanded[idx];
+  sessionStorage.setItem('fitlog_meal_expanded', JSON.stringify(expanded));
+  const body = document.getElementById('mealBody' + idx);
+  const card = body.parentElement;
+  const arrow = card.querySelector('.meal-header span:last-child');
+  if (expanded[idx]) {
+    body.style.display = 'block';
+    arrow.style.transform = 'rotate(180deg)';
+  } else {
+    body.style.display = 'none';
+    arrow.style.transform = 'rotate(0deg)';
+  }
+}
+
+function openMealAddFood(slotIdx, mealName) {
+  const slot = document.getElementById('foodAddSlot' + slotIdx);
+  if (slot.innerHTML) { slot.innerHTML = ''; return; }
+
+  currentMealSlot = mealName;
+
+  slot.innerHTML = `<div class="diet-replace-box" style="margin-top:8px">
+    <div class="food-category-tabs" id="inlineFoodCats${slotIdx}" style="margin-bottom:6px"></div>
+    <input type="text" id="inlineFoodSearch${slotIdx}" placeholder="Search food..." oninput="searchInlineFood(this.value, ${slotIdx})" autocomplete="off" style="font-size:15px">
+    <div id="inlineFoodSelected${slotIdx}" style="display:none;background:var(--accent-light);border-radius:8px;padding:10px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div id="inlineFoodName${slotIdx}" style="font-weight:600;font-size:13px;color:var(--accent-dark)"></div>
+          <div id="inlineFoodInfo${slotIdx}" style="font-size:11px;color:var(--text-secondary);margin-top:2px"></div>
+        </div>
+        <button onclick="clearInlineFood(${slotIdx})" style="border:none;background:rgba(255,107,53,0.15);color:var(--accent-dark);width:22px;height:22px;border-radius:6px;cursor:pointer;font-size:11px">✕</button>
+      </div>
+    </div>
+    <div class="diet-replace-results" id="inlineFoodResults${slotIdx}"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+      <input type="number" id="inlineFoodQty${slotIdx}" value="1" placeholder="1" inputmode="decimal" step="0.5"
+        style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:var(--card);outline:none">
+      <button class="btn btn-primary" onclick="addInlineFood(${slotIdx})" style="width:auto;padding:8px 16px;font-size:13px">Add</button>
+    </div>
+  </div>`;
+
+  renderInlineFoodCats(slotIdx);
+  document.getElementById('inlineFoodSearch' + slotIdx).focus();
+}
+
+let inlineFoodCat = 'All';
+let inlineSelectedFood = null;
+
+function renderInlineFoodCats(slotIdx) {
+  const el = document.getElementById('inlineFoodCats' + slotIdx);
+  el.innerHTML = FOOD_CATEGORIES.slice(0, 8).map(c =>
+    `<button class="food-cat-chip ${c === inlineFoodCat ? 'active' : ''}" onclick="setInlineFoodCat('${c}',${slotIdx})" style="padding:5px 10px;font-size:11px">${c}</button>`
+  ).join('');
+}
+
+function setInlineFoodCat(cat, slotIdx) {
+  inlineFoodCat = cat;
+  renderInlineFoodCats(slotIdx);
+  const q = document.getElementById('inlineFoodSearch' + slotIdx).value.trim();
+  if (q.length > 0) searchInlineFood(q, slotIdx);
+}
+
+function searchInlineFood(query, slotIdx) {
+  const q = query.toLowerCase().trim();
+  const container = document.getElementById('inlineFoodResults' + slotIdx);
+  if (q.length < 1) { container.innerHTML = ''; return; }
+
+  const matches = FOOD_DB.filter(f => {
+    const nameMatch = f.name.toLowerCase().includes(q);
+    const catMatch = inlineFoodCat === 'All' || f.cat === inlineFoodCat;
+    return nameMatch && catMatch;
+  }).slice(0, 6);
+
+  if (!matches.length) {
+    container.innerHTML = '<div style="padding:8px;text-align:center;color:var(--text-secondary);font-size:12px">No results</div>';
+    return;
+  }
+
+  container.innerHTML = matches.map((f, i) =>
+    `<div class="diet-replace-item" onclick="selectInlineFood(${slotIdx},${i})">
+      <div>
+        <div class="diet-replace-item-name">${esc(f.name)}</div>
+        <div style="font-size:10px;color:var(--text-secondary)">${f.cal} cal · P:${f.protein}g · C:${f.carbs}g · F:${f.fat}g · per ${f.size}</div>
+      </div>
+      <div class="diet-replace-item-cal">${f.cal}</div>
+    </div>`
+  ).join('');
+  container._matches = matches;
+}
+
+function selectInlineFood(slotIdx, matchIdx) {
+  const container = document.getElementById('inlineFoodResults' + slotIdx);
+  const food = container._matches[matchIdx];
+  if (!food) return;
+
+  inlineSelectedFood = food;
+  document.getElementById('inlineFoodSearch' + slotIdx).value = food.name;
+  container.innerHTML = '';
+
+  const card = document.getElementById('inlineFoodSelected' + slotIdx);
+  card.style.display = 'block';
+  document.getElementById('inlineFoodName' + slotIdx).textContent = food.name;
+  document.getElementById('inlineFoodInfo' + slotIdx).textContent =
+    `Per ${food.size}: ${food.cal} cal · P:${food.protein}g · C:${food.carbs}g · F:${food.fat}g`;
+}
+
+function clearInlineFood(slotIdx) {
+  inlineSelectedFood = null;
+  document.getElementById('inlineFoodSearch' + slotIdx).value = '';
+  document.getElementById('inlineFoodSelected' + slotIdx).style.display = 'none';
+}
+
+function addInlineFood(slotIdx) {
+  if (!inlineSelectedFood) { showToast('Select a food first'); return; }
+  const qty = parseFloat(document.getElementById('inlineFoodQty' + slotIdx).value) || 1;
+
+  const foods = DB.get('foods');
+  foods.unshift({
+    id: Date.now(),
+    name: inlineSelectedFood.name,
+    serving: inlineSelectedFood.serving,
+    unit: inlineSelectedFood.unit,
+    size: inlineSelectedFood.size,
+    meal: currentMealSlot,
+    qty,
+    cal: Math.round(inlineSelectedFood.cal * qty),
+    protein: Math.round(inlineSelectedFood.protein * qty * 10) / 10,
+    carbs: Math.round(inlineSelectedFood.carbs * qty * 10) / 10,
+    fat: Math.round(inlineSelectedFood.fat * qty * 10) / 10,
+    fiber: Math.round(inlineSelectedFood.fiber * qty * 10) / 10,
+    date: new Date().toISOString()
+  });
+  DB.set('foods', foods);
+
+  inlineSelectedFood = null;
+  inlineFoodCat = 'All';
+  updateMacroSummary();
+  renderTodayFoodLog();
+  showToast('Added to ' + currentMealSlot + '! 🍽️');
+}
+
+function deleteFood(id) {
+  const foods = DB.get('foods').filter(f => f.id !== id);
+  DB.set('foods', foods);
+  updateMacroSummary();
+  renderTodayFoodLog();
+  showToast('Removed');
+}
+
+// ==================== DASHBOARD ====================
+function updateDashboard() {
+  const workouts = DB.get('workouts');
+  document.getElementById('totalWorkouts').textContent = workouts.length;
+  document.getElementById('currentStreak').textContent = calcStreak(workouts);
+
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+  document.getElementById('weekWorkouts').textContent = workouts.filter(w => new Date(w.date) >= weekStart).length;
+
+  const todayFoods = getTodayFoods();
+  const eaten = todayFoods.reduce((s, f) => s + f.cal, 0);
+  document.getElementById('todayCals').textContent = eaten;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayWorkouts = workouts.filter(w => w.date.startsWith(todayStr));
+  const burned = todayWorkouts.reduce((s, w) => s + (w.calsBurned || 0), 0);
+  document.getElementById('burnedToday').textContent = burned;
+
+  const net = eaten - burned;
+  document.getElementById('netCals').textContent = (net >= 0 ? '' : '') + net;
+}
+
+function calcStreak(workouts) {
+  if (!workouts.length) return 0;
+  const days = new Set(workouts.map(w => new Date(w.date).toISOString().split('T')[0]));
+  let streak = 0;
+  let d = new Date();
+  d.setHours(0, 0, 0, 0);
+  if (!days.has(d.toISOString().split('T')[0])) d.setDate(d.getDate() - 1);
+  while (days.has(d.toISOString().split('T')[0])) { streak++; d.setDate(d.getDate() - 1); }
+  return streak;
+}
+
+function renderStreakBar() {
+  const workouts = DB.get('workouts');
+  const days = new Set(workouts.map(w => new Date(w.date).toISOString().split('T')[0]));
+  const container = document.getElementById('streakDays');
+  const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const now = new Date();
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0, 0, 0, 0);
+  const todayStr = now.toISOString().split('T')[0];
+  let html = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
+    const ds = d.toISOString().split('T')[0];
+    const done = days.has(ds);
+    const cls = done ? 'done' : (ds === todayStr ? 'today' : '');
+    html += `<div class="streak-day"><div class="streak-dot ${cls}">${done ? '✓' : dayNames[i]}</div><div class="streak-day-label">${dayNames[i]}</div></div>`;
+  }
+  container.innerHTML = html;
+}
+
+function renderRecentWorkouts() {
+  const workouts = DB.get('workouts').slice(0, 5);
+  const c = document.getElementById('recentWorkouts');
+  if (!workouts.length) { c.innerHTML = '<div class="empty-state"><div class="empty-icon">🏋️</div><p>No workouts yet.<br>Tap 💪 to log your first one!</p></div>'; return; }
+  c.innerHTML = workouts.map(w => workoutCard(w, false)).join('');
+}
+
+function renderAllWorkouts() {
+  const workouts = DB.get('workouts');
+  const c = document.getElementById('allWorkouts');
+  if (!workouts.length) { c.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>No workout history yet.</p></div>'; return; }
+  c.innerHTML = workouts.map(w => workoutCard(w, true)).join('');
+}
+
+function workoutCard(w, showDelete) {
+  const d = new Date(w.date);
+  const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const del = showDelete ? `<button class="workout-delete" onclick="deleteWorkout(${w.id})">✕</button>` : '';
+  const durText = w.duration ? ' · ' + w.duration + 'min' : '';
+  const burnText = w.calsBurned ? '<div style="font-size:12px;color:var(--accent);font-weight:600;margin-top:1px">🔥 ' + w.calsBurned + ' cal burned</div>' : '';
+  return `<div class="workout-item">
+    <div class="workout-icon-wrap">${getExerciseIcon(w.name)}</div>
+    <div class="workout-info"><div class="workout-name">${esc(w.name)}</div><div class="workout-meta">${w.sets}×${w.reps} ${w.weight ? '@ ' + w.weight + 'kg' : ''}${durText}</div>${burnText}</div>
+    <div class="workout-date">${dateStr}<br>${timeStr}</div>${del}
+  </div>`;
+}
+
+function getExerciseIcon(name) {
+  const n = name.toLowerCase();
+  if (n.includes('bench') || n.includes('push')) return '💪';
+  if (n.includes('squat') || n.includes('leg')) return '🦵';
+  if (n.includes('dead')) return '🏋️';
+  if (n.includes('pull') || n.includes('lat') || n.includes('row')) return '🔙';
+  if (n.includes('plank') || n.includes('core')) return '🧘';
+  if (n.includes('run') || n.includes('cardio')) return '🏃';
+  return '🏋️';
+}
+
+function deleteWorkout(id) {
+  DB.set('workouts', DB.get('workouts').filter(w => w.id !== id));
+  renderAllWorkouts();
+  showToast('Workout deleted');
+}
+
+// ==================== WEIGHT CHART ====================
+function renderWeightChart() {
+  const weights = DB.get('weights').slice(-30);
+  const ctx = document.getElementById('weightChart').getContext('2d');
+  if (weightChart) weightChart.destroy();
+
+  if (!weights.length) {
+    weightChart = new Chart(ctx, { type: 'line', data: { labels: ['No data'], datasets: [{ data: [0], borderColor: '#ccc' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+    return;
+  }
+
+  weightChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: weights.map(w => new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+      datasets: [{
+        label: 'Weight (kg)', data: weights.map(w => w.value),
+        borderColor: '#FF6B35', backgroundColor: 'rgba(255,107,53,0.08)', fill: true,
+        tension: 0.35, pointBackgroundColor: '#FF6B35', pointBorderColor: '#fff',
+        pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1A1A1A', cornerRadius: 10, padding: 10, callbacks: { label: c => c.parsed.y + ' kg' } } },
+      scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#999', maxTicksLimit: 7 } }, y: { grid: { color: '#F0EDE8' }, ticks: { font: { size: 10 }, color: '#999', callback: v => v + ' kg' } } }
+    }
+  });
+}
+
+function renderWeightHistory() {
+  const weights = DB.get('weights').slice().reverse().slice(0, 10);
+  const c = document.getElementById('weightHistory');
+  if (!weights.length) { c.innerHTML = '<div class="empty-state"><div class="empty-icon">⚖️</div><p>No weight entries yet.</p></div>'; return; }
+  c.innerHTML = '<div class="section-title" style="margin-top:8px">Recent Entries</div>' +
+    weights.map(w => `<div class="workout-item"><div class="workout-icon-wrap" style="background:var(--green-light)">⚖️</div><div class="workout-info"><div class="workout-name">${w.value} kg</div><div class="workout-meta">${new Date(w.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div></div></div>`).join('');
+}
+
+// ==================== UTILS ====================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ==================== DIET PLAN ====================
+function toggleDietSection() {
+  const section = document.getElementById('dietSection');
+  const arrow = document.getElementById('dietToggleArrow');
+  if (section.style.display === 'none') {
+    section.style.display = 'block';
+    arrow.style.transform = 'rotate(180deg)';
+  } else {
+    section.style.display = 'none';
+    arrow.style.transform = 'rotate(0deg)';
+  }
+}
+
+let dietGoalVal = 'fatloss';
+let dietActivityVal = 'light';
+let dietTypeVal = 'veg';
+let dietWorkoutTime = 'morning';
+
+function setDietField(el, field, val) {
+  window[field] = val;
+  el.parentElement.querySelectorAll('.food-cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function calcTDEE(wt, ht, age, gender, activity) {
+  let bmr = gender === 'female' ? 10*wt + 6.25*ht - 5*age - 161 : 10*wt + 6.25*ht - 5*age + 5;
+  const m = { sedentary:1.2, light:1.375, moderate:1.55, very:1.725 };
+  return Math.round(bmr * (m[activity] || 1.375));
+}
+
+function calcMacros(cal, goal, wt) {
+  let p, f;
+  if (goal === 'fatloss') { p = Math.round(wt*2.2); f = Math.round(wt*0.8); }
+  else if (goal === 'musclegain') { p = Math.round(wt*2); f = Math.round(wt*1); }
+  else { p = Math.round(wt*1.8); f = Math.round(wt*0.9); }
+  let c = Math.round((cal - p*4 - f*9) / 4);
+  return { proteinG: p, fatG: f, carbsG: Math.max(c, 50) };
+}
+
+const DIET_MEALS = {
+  breakfast: {
+    veg: [
+      [{ n: 'Idli (steamed)', q: '3 pieces', c: 180 }, { n: 'Sambar', q: '100ml', c: 60 }, { n: 'Coconut Chutney', q: '30g', c: 50 }],
+      [{ n: 'Oats Porridge + Banana', q: '200g', c: 160 }, { n: 'Flax Seeds', q: '1 tbsp', c: 80 }, { n: 'Banana', q: '1 piece', c: 105 }],
+      [{ n: 'Ragi Porridge', q: '200g', c: 180 }, { n: 'Dates', q: '2 pieces', c: 130 }],
+      [{ n: 'Pesarattu (Green Gram Dosa)', q: '2 pieces', c: 300 }, { n: 'Mint Chutney', q: '30g', c: 15 }],
+      [{ n: 'Adai Dosai (Lentil)', q: '1 piece', c: 200 }, { n: 'Tomato Chutney', q: '30g', c: 30 }],
+      [{ n: 'Overnight Oats', q: '200g', c: 250 }, { n: 'Chia Seeds', q: '1 tbsp', c: 70 }],
+      [{ n: 'Poha (Flattened Rice)', q: '200g', c: 250 }, { n: 'Green Tea', q: '1 cup', c: 2 }],
+      [{ n: 'Sprouts Salad', q: '150g', c: 120 }, { n: 'Brown Bread', q: '2 slices', c: 150 }],
+      [{ n: 'Ragi Dosa', q: '2 pieces', c: 260 }, { n: 'Sambar', q: '100ml', c: 60 }],
+      [{ n: 'Quinoa Upma', q: '200g', c: 210 }, { n: 'Buttermilk', q: '200ml', c: 30 }],
+    ],
+    nonveg: [
+      [{ n: 'Boiled Eggs', q: '3 whole', c: 225 }, { n: 'Brown Bread', q: '2 slices', c: 150 }],
+      [{ n: 'Egg White Omelette', q: '4 whites + 1 whole', c: 150 }, { n: 'Multigrain Toast', q: '2 slices', c: 160 }],
+      [{ n: 'Oats Porridge', q: '200g', c: 160 }, { n: 'Boiled Eggs', q: '2 eggs', c: 150 }],
+      [{ n: 'Scrambled Eggs (less oil)', q: '2 eggs', c: 170 }, { n: 'Avocado Toast', q: '1 slice', c: 150 }],
+      [{ n: 'Ragi Porridge', q: '200g', c: 180 }, { n: 'Boiled Egg', q: '1 egg', c: 75 }, { n: 'Banana', q: '1 piece', c: 105 }],
+      [{ n: 'Pesarattu', q: '1 piece', c: 150 }, { n: 'Boiled Eggs', q: '2 eggs', c: 150 }],
+    ],
+    egg: [
+      [{ n: 'Boiled Eggs', q: '2 eggs', c: 150 }, { n: 'Idli', q: '2 pieces', c: 120 }, { n: 'Sambar', q: '100ml', c: 60 }],
+      [{ n: 'Egg White Omelette', q: '3 whites', c: 51 }, { n: 'Brown Bread', q: '2 slices', c: 150 }, { n: 'Banana', q: '1 piece', c: 105 }],
+      [{ n: 'Oats', q: '200g', c: 160 }, { n: 'Boiled Egg', q: '2 eggs', c: 150 }],
+      [{ n: 'Ragi Porridge', q: '200g', c: 180 }, { n: 'Boiled Egg', q: '1 egg', c: 75 }, { n: 'Apple', q: '1 piece', c: 95 }],
+      [{ n: 'Adai Dosai', q: '1 piece', c: 200 }, { n: 'Boiled Egg', q: '1 egg', c: 75 }],
+    ]
+  },
+  morningSnack: {
+    veg: [
+      [{ n: 'Banana', q: '1 piece', c: 105 }, { n: 'Almonds (soaked)', q: '8 nuts', c: 55 }],
+      [{ n: 'Apple', q: '1 piece', c: 95 }],
+      [{ n: 'Buttermilk', q: '250ml', c: 40 }, { n: 'Sundal', q: '100g', c: 100 }],
+      [{ n: 'Sprouts Salad', q: '100g', c: 80 }],
+      [{ n: 'Guava', q: '1 piece', c: 68 }, { n: 'Walnuts', q: '3 halves', c: 60 }],
+      [{ n: 'Papaya', q: '150g', c: 60 }, { n: 'Pumpkin Seeds', q: '10g', c: 55 }],
+      [{ n: 'Orange', q: '1 piece', c: 62 }, { n: 'Mixed Nuts', q: '10g', c: 55 }],
+      [{ n: 'Carrot + Cucumber Sticks', q: '100g', c: 30 }, { n: 'Hummus', q: '30g', c: 50 }],
+    ],
+    nonveg: [
+      [{ n: 'Boiled Eggs', q: '2 eggs', c: 150 }],
+      [{ n: 'Apple', q: '1 piece', c: 95 }, { n: 'Almonds', q: '8 nuts', c: 55 }],
+      [{ n: 'Sprouts Salad', q: '100g', c: 80 }],
+      [{ n: 'Banana', q: '1 piece', c: 105 }, { n: 'Walnuts', q: '3 halves', c: 60 }],
+    ],
+    egg: [
+      [{ n: 'Boiled Egg', q: '1 egg', c: 75 }, { n: 'Banana', q: '1 piece', c: 105 }],
+      [{ n: 'Sprouts', q: '100g', c: 80 }, { n: 'Orange', q: '1 piece', c: 62 }],
+      [{ n: 'Guava', q: '1 piece', c: 68 }, { n: 'Almonds', q: '8 nuts', c: 55 }],
+      [{ n: 'Apple', q: '1 piece', c: 95 }, { n: 'Pumpkin Seeds', q: '10g', c: 55 }],
+    ]
+  },
+  lunch: {
+    veg: [
+      [{ n: 'Brown Rice', q: '150g', c: 215 }, { n: 'Sambar', q: '200ml', c: 120 }, { n: 'Poriyal (no coconut)', q: '100g', c: 55 }, { n: 'Curd', q: '100ml', c: 50 }],
+      [{ n: 'Brown Rice', q: '150g', c: 215 }, { n: 'Dal Tadka', q: '200ml', c: 190 }, { n: 'Spinach Poriyal', q: '100g', c: 50 }],
+      [{ n: 'Roti (Wheat)', q: '2 pieces', c: 200 }, { n: 'Palak Paneer (less oil)', q: '150ml', c: 180 }, { n: 'Curd', q: '100ml', c: 50 }],
+      [{ n: 'Roti', q: '2 pieces', c: 200 }, { n: 'Chana Masala (low oil)', q: '150g', c: 150 }, { n: 'Raita', q: '100g', c: 60 }],
+      [{ n: 'Brown Rice', q: '150g', c: 215 }, { n: 'Kootu', q: '200ml', c: 140 }, { n: 'Rasam', q: '150ml', c: 38 }],
+      [{ n: 'Foxtail Millet Rice', q: '150g', c: 170 }, { n: 'Sambar', q: '200ml', c: 120 }, { n: 'Poriyal', q: '100g', c: 55 }, { n: 'Buttermilk', q: '150ml', c: 25 }],
+      [{ n: 'Jowar Roti', q: '2 pieces', c: 220 }, { n: 'Mixed Veg Curry (low oil)', q: '200g', c: 140 }, { n: 'Curd', q: '100ml', c: 50 }],
+      [{ n: 'Quinoa', q: '150g', c: 180 }, { n: 'Rajma (low oil)', q: '150g', c: 160 }, { n: 'Salad', q: '100g', c: 30 }],
+    ],
+    nonveg: [
+      [{ n: 'Brown Rice', q: '150g', c: 215 }, { n: 'Grilled Chicken Curry', q: '150g', c: 200 }, { n: 'Poriyal', q: '100g', c: 55 }],
+      [{ n: 'Brown Rice', q: '150g', c: 215 }, { n: 'Fish Curry (less oil)', q: '200ml', c: 190 }, { n: 'Rasam', q: '100ml', c: 25 }],
+      [{ n: 'Roti', q: '2 pieces', c: 200 }, { n: 'Grilled Chicken', q: '100g', c: 165 }, { n: 'Salad', q: '100g', c: 30 }],
+      [{ n: 'Brown Rice', q: '150g', c: 215 }, { n: 'Meen Kulambu (less oil)', q: '200ml', c: 200 }, { n: 'Poriyal', q: '100g', c: 55 }],
+      [{ n: 'Foxtail Millet Rice', q: '150g', c: 170 }, { n: 'Chicken Rasam', q: '200ml', c: 150 }, { n: 'Steamed Veggies', q: '100g', c: 35 }],
+    ],
+    egg: [
+      [{ n: 'Brown Rice', q: '150g', c: 215 }, { n: 'Egg Curry (low oil)', q: '200ml', c: 200 }, { n: 'Poriyal', q: '100g', c: 55 }],
+      [{ n: 'Roti', q: '2 pieces', c: 200 }, { n: 'Egg Masala (low oil)', q: '200ml', c: 190 }, { n: 'Raita', q: '100g', c: 60 }],
+      [{ n: 'Brown Rice', q: '150g', c: 215 }, { n: 'Sambar', q: '200ml', c: 120 }, { n: 'Boiled Egg', q: '1 egg', c: 75 }, { n: 'Poriyal', q: '100g', c: 55 }],
+      [{ n: 'Foxtail Millet', q: '150g', c: 170 }, { n: 'Dal', q: '200ml', c: 180 }, { n: 'Boiled Egg', q: '1 egg', c: 75 }],
+    ]
+  },
+  eveningSnack: {
+    veg: [
+      [{ n: 'Sundal (Steamed)', q: '100g', c: 100 }, { n: 'Green Tea', q: '200ml', c: 2 }],
+      [{ n: 'Roasted Chana', q: '30g', c: 110 }, { n: 'Buttermilk', q: '200ml', c: 30 }],
+      [{ n: 'Ragi Malt (no sugar)', q: '200ml', c: 120 }],
+      [{ n: 'Steamed Corn', q: '1 piece', c: 130 }],
+      [{ n: 'Green Tea', q: '200ml', c: 2 }, { n: 'Almonds', q: '10 nuts', c: 70 }],
+      [{ n: 'Carrot + Cucumber', q: '100g', c: 30 }, { n: 'Peanuts (roasted)', q: '20g', c: 115 }],
+      [{ n: 'Sweet Potato (boiled)', q: '100g', c: 90 }],
+      [{ n: 'Fruit Salad', q: '150g', c: 80 }],
+    ],
+    nonveg: [
+      [{ n: 'Boiled Eggs', q: '2 eggs', c: 150 }, { n: 'Green Tea', q: '200ml', c: 2 }],
+      [{ n: 'Grilled Chicken Strips', q: '80g', c: 130 }],
+      [{ n: 'Sundal', q: '100g', c: 100 }, { n: 'Buttermilk', q: '200ml', c: 30 }],
+      [{ n: 'Banana', q: '1 piece', c: 105 }, { n: 'Almonds', q: '8 nuts', c: 55 }],
+    ],
+    egg: [
+      [{ n: 'Boiled Egg', q: '1 egg', c: 75 }, { n: 'Green Tea', q: '200ml', c: 2 }],
+      [{ n: 'Sundal', q: '100g', c: 100 }, { n: 'Buttermilk', q: '200ml', c: 30 }],
+      [{ n: 'Roasted Chana', q: '30g', c: 110 }],
+      [{ n: 'Steamed Corn', q: '1 piece', c: 130 }],
+    ]
+  },
+  dinner: {
+    veg: [
+      [{ n: 'Roti (Wheat)', q: '2 pieces', c: 200 }, { n: 'Mixed Veg (less oil)', q: '150g', c: 100 }, { n: 'Curd', q: '100ml', c: 50 }],
+      [{ n: 'Idli (steamed)', q: '3 pieces', c: 180 }, { n: 'Sambar', q: '150ml', c: 90 }],
+      [{ n: 'Brown Rice', q: '100g', c: 140 }, { n: 'Rasam', q: '200ml', c: 50 }, { n: 'Poriyal', q: '100g', c: 55 }],
+      [{ n: 'Bajra Roti', q: '2 pieces', c: 240 }, { n: 'Palak (Spinach)', q: '150g', c: 45 }, { n: 'Curd', q: '100ml', c: 50 }],
+      [{ n: 'Jowar Roti', q: '2 pieces', c: 220 }, { n: 'Bhindi (Okra) Stir Fry', q: '150g', c: 80 }, { n: 'Dal', q: '100ml', c: 90 }],
+      [{ n: 'Moong Dal Khichdi', q: '200g', c: 220 }, { n: 'Curd', q: '100ml', c: 50 }, { n: 'Salad', q: '50g', c: 15 }],
+      [{ n: 'Vegetable Soup', q: '200ml', c: 60 }, { n: 'Roti', q: '1 piece', c: 100 }, { n: 'Paneer Bhurji (less oil)', q: '80g', c: 150 }],
+    ],
+    nonveg: [
+      [{ n: 'Roti', q: '2 pieces', c: 200 }, { n: 'Grilled Chicken', q: '100g', c: 165 }, { n: 'Salad', q: '100g', c: 30 }],
+      [{ n: 'Brown Rice', q: '100g', c: 140 }, { n: 'Fish Curry (less oil)', q: '200ml', c: 190 }],
+      [{ n: 'Grilled Fish', q: '150g', c: 180 }, { n: 'Steamed Veggies', q: '100g', c: 35 }, { n: 'Roti', q: '1 piece', c: 100 }],
+      [{ n: 'Chicken Soup', q: '200ml', c: 100 }, { n: 'Brown Rice', q: '100g', c: 140 }, { n: 'Poriyal', q: '100g', c: 55 }],
+      [{ n: 'Roti', q: '2 pieces', c: 200 }, { n: 'Egg Curry (low oil)', q: '200ml', c: 200 }],
+    ],
+    egg: [
+      [{ n: 'Roti', q: '2 pieces', c: 200 }, { n: 'Egg Curry (low oil)', q: '200ml', c: 200 }],
+      [{ n: 'Idli', q: '3 pieces', c: 180 }, { n: 'Sambar', q: '150ml', c: 90 }, { n: 'Boiled Egg', q: '1 egg', c: 75 }],
+      [{ n: 'Brown Rice', q: '100g', c: 140 }, { n: 'Rasam', q: '200ml', c: 50 }, { n: 'Egg Bhurji (less oil)', q: '1 egg', c: 90 }, { n: 'Poriyal', q: '100g', c: 55 }],
+      [{ n: 'Moong Dal Khichdi', q: '200g', c: 220 }, { n: 'Boiled Egg', q: '1 egg', c: 75 }, { n: 'Curd', q: '100ml', c: 50 }],
+    ]
+  }
+};
+
+const GAIN_EXTRAS = {
+  veg: [
+    { n: 'Banana + Peanut Butter Shake', q: '300ml', c: 340 },
+    { n: 'Badam Milk (no sugar)', q: '250ml', c: 150 },
+    { n: 'Paneer + Nuts Bowl', q: '100g', c: 280 },
+    { n: 'Curd + Banana + Honey', q: '1 bowl', c: 220 },
+    { n: 'Overnight Oats + Dry Fruits', q: '200g', c: 280 },
+    { n: 'Sweet Potato + Peanut Butter', q: '150g', c: 230 },
+  ],
+  nonveg: [
+    { n: 'Whey Protein Shake', q: '1 scoop + milk', c: 200 },
+    { n: 'Grilled Chicken Breast', q: '100g', c: 165 },
+    { n: 'Boiled Eggs', q: '3 whites + 1 whole', c: 125 },
+    { n: 'Banana + Peanut Butter Shake', q: '300ml', c: 340 },
+    { n: 'Curd + Banana + Honey', q: '1 bowl', c: 220 },
+  ],
+  egg: [
+    { n: 'Boiled Eggs', q: '2 extra', c: 150 },
+    { n: 'Banana + Peanut Butter Shake', q: '300ml', c: 340 },
+    { n: 'Badam Milk (no sugar)', q: '250ml', c: 150 },
+    { n: 'Curd + Banana + Honey', q: '1 bowl', c: 220 },
+    { n: 'Sweet Potato + Peanut Butter', q: '150g', c: 230 },
+  ]
+};
+
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function mealCals(items) { return items.reduce((s, i) => s + i.c, 0); }
+
+let currentDietPlan = null;
+let currentDailyCal = 0;
+
+function generateDietPlan() {
+  const age = parseInt(document.getElementById('dietAge').value) || 25;
+  const gender = document.getElementById('dietGender').value || 'male';
+  const height = parseFloat(document.getElementById('dietHeight').value) || 170;
+  const curWt = parseFloat(document.getElementById('dietCurrentWt').value);
+  const tgtWt = parseFloat(document.getElementById('dietTargetWt').value) || curWt;
+  if (!curWt) { showToast('Enter current weight'); return; }
+
+  const tdee = calcTDEE(curWt, height, age, gender, dietActivityVal);
+  const adj = { fatloss: -500, musclegain: 300, recomp: -200, maintain: 0 };
+  currentDailyCal = Math.max(1200, tdee + (adj[dietGoalVal] || 0));
+  const macros = calcMacros(currentDailyCal, dietGoalVal, curWt);
+  const waterL = Math.round(curWt * 0.035 * 10) / 10;
+
+  const dt = dietTypeVal;
+  let meals = [
+    { title: 'Breakfast', time: '7:00 - 8:00 AM', items: JSON.parse(JSON.stringify(pickRandom(DIET_MEALS.breakfast[dt]))) },
+    { title: 'Morning Snack', time: '10:00 - 10:30 AM', items: JSON.parse(JSON.stringify(pickRandom(DIET_MEALS.morningSnack[dt]))) },
+    { title: 'Lunch', time: '12:30 - 1:30 PM', items: JSON.parse(JSON.stringify(pickRandom(DIET_MEALS.lunch[dt]))) },
+    { title: 'Evening Snack', time: '4:00 - 5:00 PM', items: JSON.parse(JSON.stringify(pickRandom(DIET_MEALS.eveningSnack[dt]))) },
+    { title: 'Dinner', time: '7:30 - 8:30 PM', items: JSON.parse(JSON.stringify(pickRandom(DIET_MEALS.dinner[dt]))) },
+  ];
+
+  let totalCal = meals.reduce((s, m) => s + mealCals(m.items), 0);
+  if (dietGoalVal === 'musclegain' && totalCal < currentDailyCal) {
+    const extra = pickRandom(GAIN_EXTRAS[dt]);
+    meals.push({ title: 'Bedtime Snack', time: '9:30 - 10:00 PM', items: [JSON.parse(JSON.stringify(extra))] });
+  }
+
+  const diff = tgtWt - curWt;
+  const weeks = diff !== 0 ? Math.abs(Math.round(diff / (dietGoalVal === 'fatloss' ? 0.5 : 0.3))) : 0;
+
+  currentDietPlan = { meals, curWt, tgtWt, weeks, dt, tdee, macros, waterL };
+  localStorage.setItem('fitlog_diet', JSON.stringify({ goalVal: dietGoalVal, typeVal: dietTypeVal, activityVal: dietActivityVal, workoutTime: dietWorkoutTime, curWt, tgtWt, age, gender, height }));
+  renderDietPlan();
+}
+
+function renderDietPlan() {
+  if (!currentDietPlan) return;
+  const { meals, curWt, tgtWt, weeks, dt, tdee, macros, waterL } = currentDietPlan;
+  const totalCal = meals.reduce((s, m) => s + mealCals(m.items), 0);
+  const mealEmojis = { 'Breakfast': '🌅', 'Morning Snack': '🍎', 'Lunch': '☀️', 'Evening Snack': '🫖', 'Dinner': '🌙', 'Bedtime Snack': '😴' };
+
+  const checkedMeals = getDietChecks();
+  const checkedCals = meals.reduce((s, m, i) => s + (checkedMeals[i] ? mealCals(m.items) : 0), 0);
+  const pct = totalCal > 0 ? Math.round((checkedCals / totalCal) * 100) : 0;
+  const circumference = 2 * Math.PI * 42;
+  const dashOffset = circumference - (circumference * Math.min(pct, 100) / 100);
+  const ringColor = pct >= 100 ? '#2ECC71' : '#FF6B35';
+
+  const goalLabels = { fatloss: '🔥 Fat Loss', musclegain: '💪 Muscle Gain', recomp: '🔄 Recomp', maintain: '⚖️ Maintain' };
+
+  let html = `<div class="diet-summary animate-in">
+    <div class="diet-summary-title">${goalLabels[dietGoalVal] || 'Plan'}</div>
+    <div class="diet-summary-cal">${currentDailyCal} cal/day</div>
+    <div style="font-size:11px;opacity:0.8">TDEE: ${tdee || '—'} cal ${dietGoalVal === 'fatloss' ? '- 500' : dietGoalVal === 'musclegain' ? '+ 300' : dietGoalVal === 'recomp' ? '- 200' : ''}</div>
+    ${weeks > 0 ? `<div style="font-size:12px;opacity:0.85;margin-top:3px">${curWt}kg → ${tgtWt}kg · ~${weeks} weeks</div>` : ''}
+    <div class="diet-summary-row" style="margin-top:8px">
+      <div class="diet-summary-item"><span>${macros ? macros.proteinG + 'g' : '—'}</span>Protein</div>
+      <div class="diet-summary-item"><span>${macros ? macros.carbsG + 'g' : '—'}</span>Carbs</div>
+      <div class="diet-summary-item"><span>${macros ? macros.fatG + 'g' : '—'}</span>Fat</div>
+      <div class="diet-summary-item"><span>${waterL || '—'}L</span>Water</div>
+    </div>
+  </div>`;
+
+  // Calorie progress ring
+  html += `<div class="cal-ring-wrap animate-in" style="animation-delay:0.05s">
+    <div class="cal-ring">
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#F0EDE8" stroke-width="6"/>
+        <circle cx="50" cy="50" r="42" fill="none" stroke="${ringColor}" stroke-width="6"
+          stroke-linecap="round" stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"
+          style="transition:stroke-dashoffset 0.6s ease"/>
+      </svg>
+      <div class="cal-ring-text">
+        <div class="cal-ring-pct">${pct}%</div>
+        <div class="cal-ring-label">done</div>
+      </div>
+    </div>
+    <div class="cal-ring-stats">
+      <div class="cal-ring-row"><span class="cal-ring-row-label">Plan Total</span><span class="cal-ring-row-val">${totalCal} cal</span></div>
+      <div class="cal-ring-row"><span class="cal-ring-row-label">Completed</span><span class="cal-ring-row-val" style="color:var(--green)">${checkedCals} cal</span></div>
+      <div class="cal-ring-row"><span class="cal-ring-row-label">Remaining</span><span class="cal-ring-row-val" style="color:var(--accent)">${totalCal - checkedCals} cal</span></div>
+      <div class="cal-ring-row"><span class="cal-ring-row-label">Meals Done</span><span class="cal-ring-row-val">${checkedMeals.filter(Boolean).length} / ${meals.length}</span></div>
+    </div>
+  </div>`;
+
+  // Water tracker
+  const waterCount = getWaterCount();
+  html += `<div class="water-tracker animate-in" style="animation-delay:0.1s">
+    <div class="water-title-row">
+      <div class="water-title">💧 Water Intake</div>
+      <div class="water-count">${waterCount} / 8 glasses</div>
+    </div>
+    <div class="water-glasses">`;
+  for (let i = 0; i < 8; i++) {
+    html += `<div class="water-glass ${i < waterCount ? 'filled' : ''}" onclick="toggleWater(${i})">💧</div>`;
+  }
+  html += `</div></div>`;
+
+  // Meal cards
+  meals.forEach((m, mi) => {
+    const mc = mealCals(m.items);
+    const isDone = checkedMeals[mi];
+    const emoji = mealEmojis[m.title] || '🍽️';
+    html += `<div class="meal-card ${isDone ? 'completed' : ''} animate-in" style="animation-delay:${(mi+1)*0.06 + 0.1}s" id="mealCard${mi}">
+      <div class="meal-header">
+        <div style="display:flex;align-items:center">
+          <button class="meal-check ${isDone ? 'done' : ''}" onclick="toggleMealCheck(${mi})">${isDone ? '✓' : ''}</button>
+          <div>
+            <div class="meal-time">${emoji} ${m.time}</div>
+            <div class="meal-title">${m.title}</div>
+          </div>
+        </div>
+        <div class="meal-cals">${mc} cal</div>
+      </div>`;
+    m.items.forEach((item, ii) => {
+      html += `<div class="meal-item" id="mealItem${mi}_${ii}">
+        <div class="meal-item-name">${item.n}</div>
+        <div class="meal-item-qty">${item.q}</div>
+        <div class="meal-item-cal">${item.c} cal</div>
+        <button class="meal-item-swap" onclick="removeDietItem(${mi},${ii})" title="Remove">✕</button>
+      </div>`;
+    });
+    html += `<div id="replaceSlot${mi}" style="margin-top:4px"></div>`;
+    html += `<button class="btn btn-secondary" onclick="showAddFood(${mi})" style="margin-top:8px;padding:10px;font-size:13px">+ Add Item</button>`;
+    html += '</div>';
+  });
+
+  html += `<div style="display:flex;gap:10px;margin-top:4px">
+    <button class="btn btn-primary" onclick="generateDietPlan()" style="flex:1">🔄 Shuffle All</button>
+  </div>`;
+
+  html += `<div class="diet-note">
+    ✅ Tick meals as you eat · 💧 Track water · ✕ Swap foods<br>
+    All meals are clean — no fried, no maida, low oil.
+  </div>`;
+
+  document.getElementById('dietPlanOutput').innerHTML = html;
+}
+
+function getDietChecks() {
+  const today = new Date().toISOString().split('T')[0];
+  try { return JSON.parse(localStorage.getItem('fitlog_diet_checks_' + today)) || []; } catch { return []; }
+}
+
+function saveDietChecks(checks) {
+  const today = new Date().toISOString().split('T')[0];
+  localStorage.setItem('fitlog_diet_checks_' + today, JSON.stringify(checks));
+}
+
+function toggleMealCheck(idx) {
+  const checks = getDietChecks();
+  checks[idx] = !checks[idx];
+  saveDietChecks(checks);
+  renderDietPlan();
+}
+
+function getWaterCount() {
+  const today = new Date().toISOString().split('T')[0];
+  return parseInt(localStorage.getItem('fitlog_water_' + today)) || 0;
+}
+
+function toggleWater(idx) {
+  const today = new Date().toISOString().split('T')[0];
+  const current = getWaterCount();
+  const newCount = idx < current ? idx : idx + 1;
+  localStorage.setItem('fitlog_water_' + today, newCount);
+  renderDietPlan();
+}
+
+function removeDietItem(mealIdx, itemIdx) {
+  currentDietPlan.meals[mealIdx].items.splice(itemIdx, 1);
+  renderDietPlan();
+  showToast('Item removed');
+}
+
+function showAddFood(mealIdx) {
+  const slot = document.getElementById('replaceSlot' + mealIdx);
+  if (slot.innerHTML) { slot.innerHTML = ''; return; }
+  slot.innerHTML = `<div class="diet-replace-box">
+    <input type="text" placeholder="Search food to add..." oninput="searchDietFood(this.value, ${mealIdx})" autocomplete="off">
+    <div class="diet-replace-results" id="dietResults${mealIdx}"></div>
+  </div>`;
+  slot.querySelector('input').focus();
+}
+
+function searchDietFood(query, mealIdx) {
+  const q = query.toLowerCase().trim();
+  const container = document.getElementById('dietResults' + mealIdx);
+  if (q.length < 1) { container.innerHTML = ''; return; }
+
+  const matches = FOOD_DB.filter(f => f.name.toLowerCase().includes(q)).slice(0, 8);
+  if (!matches.length) {
+    container.innerHTML = '<div style="padding:8px;color:var(--text-secondary);font-size:12px;text-align:center">No results</div>';
+    return;
+  }
+
+  container.innerHTML = matches.map((f, i) =>
+    `<div class="diet-replace-item" onclick="addDietFood(${mealIdx}, ${i}, '${q}')">
+      <div>
+        <div class="diet-replace-item-name">${esc(f.name)}</div>
+        <div style="font-size:11px;color:var(--text-secondary)">per ${f.size} · P:${f.protein}g C:${f.carbs}g F:${f.fat}g</div>
+      </div>
+      <div class="diet-replace-item-cal">${f.cal} cal</div>
+    </div>`
+  ).join('');
+  container._matches = matches;
+}
+
+function addDietFood(mealIdx, matchIdx, q) {
+  const container = document.getElementById('dietResults' + mealIdx);
+  const food = container._matches[matchIdx];
+  if (!food) return;
+
+  currentDietPlan.meals[mealIdx].items.push({
+    n: food.name,
+    q: food.serving,
+    c: food.cal
+  });
+
+  renderDietPlan();
+  showToast(food.name + ' added!');
+}
+
+(function loadDietPrefs() {
+  try {
+    const p = JSON.parse(localStorage.getItem('fitlog_diet'));
+    if (p) {
+      document.addEventListener('DOMContentLoaded', () => {
+        if (p.curWt && document.getElementById('dietCurrentWt')) document.getElementById('dietCurrentWt').value = p.curWt;
+        if (p.tgtWt && document.getElementById('dietTargetWt')) document.getElementById('dietTargetWt').value = p.tgtWt;
+        if (p.age && document.getElementById('dietAge')) document.getElementById('dietAge').value = p.age;
+        if (p.height && document.getElementById('dietHeight')) document.getElementById('dietHeight').value = p.height;
+        if (p.gender && document.getElementById('dietGender')) document.getElementById('dietGender').value = p.gender;
+      });
+      if (p.goalVal) dietGoalVal = p.goalVal;
+      if (p.typeVal) dietTypeVal = p.typeVal;
+      if (p.activityVal) dietActivityVal = p.activityVal;
+      if (p.workoutTime) dietWorkoutTime = p.workoutTime;
+    }
+  } catch(e) {}
+})();
+
+// ==================== PROFILE & BMI ====================
+let activityLevel = 'low';
+
+function setActivity(level) {
+  activityLevel = level;
+  document.getElementById('actLow').classList.toggle('active', level === 'low');
+  document.getElementById('actMed').classList.toggle('active', level === 'medium');
+  document.getElementById('actHigh').classList.toggle('active', level === 'high');
+  saveProfile();
+  updateBMI();
+}
+
+function saveProfile() {
+  const profile = {
+    name: document.getElementById('profileName').value,
+    age: document.getElementById('profileAge').value,
+    height: document.getElementById('profileHeight').value,
+    activity: activityLevel
+  };
+  localStorage.setItem('fitlog_profile', JSON.stringify(profile));
+  updateBMI();
+}
+
+function loadProfile() {
+  try {
+    const p = JSON.parse(localStorage.getItem('fitlog_profile'));
+    if (p) {
+      document.getElementById('profileName').value = p.name || '';
+      document.getElementById('profileAge').value = p.age || '';
+      document.getElementById('profileHeight').value = p.height || '';
+      if (p.activity) setActivity(p.activity);
+    }
+  } catch(e) {}
+  loadGoals();
+}
+
+function updateBMI() {
+  const h = parseFloat(document.getElementById('profileHeight').value);
+  const weights = DB.get('weights');
+  const lastW = weights.length ? weights[weights.length - 1].value : null;
+  const el = document.getElementById('bmiDisplay');
+  if (!h || !lastW) { el.innerHTML = '<div style="font-size:12px;color:var(--text-secondary)">Add height & log weight to see BMI</div>'; return; }
+  const bmi = (lastW / ((h / 100) ** 2)).toFixed(1);
+  let cat = '', color = '';
+  if (bmi < 18.5) { cat = 'Underweight'; color = '#3B82F6'; }
+  else if (bmi < 25) { cat = 'Normal'; color = '#2ECC71'; }
+  else if (bmi < 30) { cat = 'Overweight'; color = '#F59E0B'; }
+  else { cat = 'Obese'; color = '#E74C3C'; }
+  el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--bg);border-radius:10px">
+    <div><div style="font-size:12px;color:var(--text-secondary)">BMI</div><div style="font-size:22px;font-weight:700">${bmi}</div></div>
+    <div style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;color:white;background:${color}">${cat}</div>
+  </div>`;
+}
+
+// ==================== GOALS ====================
+function saveGoals() {
+  localStorage.setItem('fitlog_goals', JSON.stringify({
+    cal: document.getElementById('goalCal').value,
+    protein: document.getElementById('goalProtein').value,
+    water: document.getElementById('goalWater').value,
+    sleep: document.getElementById('goalSleep').value
+  }));
+}
+
+function loadGoals() {
+  try {
+    const g = JSON.parse(localStorage.getItem('fitlog_goals'));
+    if (g) {
+      if (g.cal) document.getElementById('goalCal').value = g.cal;
+      if (g.protein) document.getElementById('goalProtein').value = g.protein;
+      if (g.water) document.getElementById('goalWater').value = g.water;
+      if (g.sleep) document.getElementById('goalSleep').value = g.sleep;
+    }
+  } catch(e) {}
+}
+
+// ==================== SLEEP TRACKER ====================
+function logSleep() {
+  const hours = parseFloat(document.getElementById('sleepHours').value);
+  const quality = parseInt(document.getElementById('sleepQuality').value);
+  if (!hours || hours <= 0) { showToast('Enter hours slept'); return; }
+  const sleeps = DB.get('sleep');
+  const today = new Date().toISOString().split('T')[0];
+  const existing = sleeps.findIndex(s => s.date === today);
+  const entry = { date: today, hours, quality };
+  if (existing >= 0) sleeps[existing] = entry; else sleeps.push(entry);
+  DB.set('sleep', sleeps);
+  document.getElementById('sleepHours').value = '';
+  renderSleepHistory();
+  showToast('Sleep logged! 😴');
+}
+
+function renderSleepHistory() {
+  const sleeps = DB.get('sleep').slice(-7).reverse();
+  const el = document.getElementById('sleepHistory');
+  if (!sleeps.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);text-align:center;padding:8px">No sleep data yet</div>'; return; }
+  const qualEmoji = { 5: '😴', 4: '🙂', 3: '😐', 2: '😟', 1: '😫' };
+  el.innerHTML = sleeps.map(s => {
+    const d = new Date(s.date);
+    return `<div class="meal-item">
+      <div class="meal-item-name">${qualEmoji[s.quality] || '😐'} ${s.hours}h</div>
+      <div class="meal-item-qty">${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+    </div>`;
+  }).join('');
+}
+
+// ==================== HOME SLEEP & PRs ====================
+function renderHomeSleep() {
+  const sleeps = DB.get('sleep');
+  const today = new Date().toISOString().split('T')[0];
+  const todaySleep = sleeps.find(s => s.date === today);
+  const qualEmoji = { 5: '😴 Great', 4: '🙂 Good', 3: '😐 OK', 2: '😟 Poor', 1: '😫 Bad' };
+
+  if (todaySleep) {
+    document.getElementById('homeSleepForm').style.display = 'none';
+    document.getElementById('homeSleepLogged').style.display = 'block';
+    document.getElementById('homeSleepInfo').innerHTML = `
+      <div style="width:50px;height:50px;border-radius:14px;background:#E8F0FE;display:flex;align-items:center;justify-content:center;font-size:24px">🌙</div>
+      <div style="flex:1">
+        <div style="font-size:20px;font-weight:700">${todaySleep.hours}h</div>
+        <div style="font-size:12px;color:var(--text-secondary)">${qualEmoji[todaySleep.quality] || 'OK'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--text-secondary)">Avg 7 days</div>
+        <div style="font-size:16px;font-weight:700">${getAvgSleep()}h</div>
+      </div>`;
+    document.getElementById('homeSleepStatus').textContent = '✓ Logged';
+  } else {
+    document.getElementById('homeSleepForm').style.display = 'block';
+    document.getElementById('homeSleepLogged').style.display = 'none';
+    document.getElementById('homeSleepStatus').textContent = '';
+  }
+}
+
+function getAvgSleep() {
+  const sleeps = DB.get('sleep').slice(-7);
+  if (!sleeps.length) return '—';
+  return (sleeps.reduce((s, x) => s + x.hours, 0) / sleeps.length).toFixed(1);
+}
+
+function logHomeSleep() {
+  const hours = parseFloat(document.getElementById('homeSleepHrs').value);
+  const quality = parseInt(document.getElementById('homeSleepQual').value);
+  if (!hours || hours <= 0) { showToast('Enter hours slept'); return; }
+  const sleeps = DB.get('sleep');
+  const today = new Date().toISOString().split('T')[0];
+  const existing = sleeps.findIndex(s => s.date === today);
+  const entry = { date: today, hours, quality };
+  if (existing >= 0) sleeps[existing] = entry; else sleeps.push(entry);
+  DB.set('sleep', sleeps);
+  renderHomeSleep();
+  showToast('Sleep logged! 😴');
+}
+
+function renderHomePRs() {
+  const workouts = DB.get('workouts');
+  const prs = {};
+  workouts.forEach(w => {
+    if (w.weight > 0) {
+      if (!prs[w.name] || w.weight > prs[w.name].weight) {
+        prs[w.name] = { weight: w.weight, reps: w.reps, date: w.date };
+      }
+    }
+  });
+  const el = document.getElementById('homePRs');
+  const keys = Object.keys(prs);
+  if (!keys.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);text-align:center;padding:8px">Log workouts with weight to see PRs here</div>'; return; }
+  el.innerHTML = keys.sort().slice(0, 5).map(name => {
+    const pr = prs[name];
+    return `<div class="meal-item">
+      <div class="meal-item-name" style="font-size:13px">🏆 ${esc(name)}</div>
+      <div class="meal-item-cal" style="margin-right:0;font-size:13px">${pr.weight}kg × ${pr.reps}</div>
+    </div>`;
+  }).join('') + (keys.length > 5 ? '<div style="font-size:11px;color:var(--text-secondary);text-align:center;padding:4px">+' + (keys.length - 5) + ' more in More tab</div>' : '');
+}
+
+// ==================== BODY MEASUREMENTS ====================
+function logMeasurements() {
+  const m = {
+    date: new Date().toISOString().split('T')[0],
+    chest: parseFloat(document.getElementById('measChest').value) || 0,
+    waist: parseFloat(document.getElementById('measWaist').value) || 0,
+    hip: parseFloat(document.getElementById('measHip').value) || 0,
+    bicep: parseFloat(document.getElementById('measBicep').value) || 0,
+    thigh: parseFloat(document.getElementById('measThigh').value) || 0,
+    neck: parseFloat(document.getElementById('measNeck').value) || 0,
+  };
+  if (!m.chest && !m.waist && !m.hip && !m.bicep) { showToast('Enter at least one measurement'); return; }
+  const meas = DB.get('measurements');
+  const existing = meas.findIndex(x => x.date === m.date);
+  if (existing >= 0) meas[existing] = m; else meas.push(m);
+  DB.set('measurements', meas);
+  renderMeasHistory();
+  showToast('Measurements saved! 📏');
+}
+
+function renderMeasHistory() {
+  const meas = DB.get('measurements').slice(-5).reverse();
+  const el = document.getElementById('measHistory');
+  if (!meas.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);text-align:center;padding:8px">No measurements yet</div>'; return; }
+  el.innerHTML = meas.map(m => {
+    const d = new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const parts = [];
+    if (m.chest) parts.push('Chest: ' + m.chest);
+    if (m.waist) parts.push('Waist: ' + m.waist);
+    if (m.hip) parts.push('Hip: ' + m.hip);
+    if (m.bicep) parts.push('Bicep: ' + m.bicep);
+    if (m.thigh) parts.push('Thigh: ' + m.thigh);
+    if (m.neck) parts.push('Neck: ' + m.neck);
+    return `<div class="meal-item"><div class="meal-item-name" style="font-size:12px">${parts.join(' · ')}</div><div class="meal-item-qty">${d}</div></div>`;
+  }).join('');
+}
+
+// ==================== PERSONAL RECORDS ====================
+function renderPRs() {
+  const workouts = DB.get('workouts');
+  const prs = {};
+  workouts.forEach(w => {
+    if (w.weight > 0) {
+      if (!prs[w.name] || w.weight > prs[w.name].weight) {
+        prs[w.name] = { weight: w.weight, reps: w.reps, date: w.date };
+      }
+    }
+  });
+  const el = document.getElementById('prList');
+  const keys = Object.keys(prs);
+  if (!keys.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);text-align:center;padding:8px">Log workouts with weight to see PRs</div>'; return; }
+  el.innerHTML = keys.sort().map(name => {
+    const pr = prs[name];
+    const d = new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `<div class="meal-item">
+      <div class="meal-item-name">🏆 ${esc(name)}</div>
+      <div class="meal-item-qty">${d}</div>
+      <div class="meal-item-cal" style="margin-right:0">${pr.weight}kg × ${pr.reps}</div>
+    </div>`;
+  }).join('');
+}
+
+// ==================== WORKOUT TEMPLATES ====================
+const DEFAULT_TEMPLATES = [
+  // PPL Split
+  { name: '💪 Push Day', exercises: [{ n: 'Bench Press', s: 4, r: 10 }, { n: 'Incline Dumbbell Press', s: 3, r: 12 }, { n: 'Overhead Press', s: 3, r: 10 }, { n: 'Cable Fly', s: 3, r: 15 }, { n: 'Tricep Pushdown', s: 3, r: 12 }, { n: 'Tricep Dip', s: 3, r: 12 }] },
+  { name: '🔙 Pull Day', exercises: [{ n: 'Deadlift', s: 4, r: 8 }, { n: 'Barbell Row', s: 4, r: 10 }, { n: 'Lat Pulldown', s: 3, r: 12 }, { n: 'Seated Row', s: 3, r: 12 }, { n: 'Face Pull', s: 3, r: 15 }, { n: 'Bicep Curl', s: 3, r: 12 }, { n: 'Hammer Curl', s: 3, r: 12 }] },
+  { name: '🦵 Leg Day', exercises: [{ n: 'Squat', s: 4, r: 10 }, { n: 'Leg Press', s: 4, r: 12 }, { n: 'Romanian Deadlift', s: 3, r: 10 }, { n: 'Leg Curl', s: 3, r: 12 }, { n: 'Leg Extension', s: 3, r: 12 }, { n: 'Calf Raise', s: 4, r: 15 }] },
+  // Upper/Lower Split
+  { name: '⬆️ Upper Body', exercises: [{ n: 'Bench Press', s: 4, r: 10 }, { n: 'Barbell Row', s: 4, r: 10 }, { n: 'Overhead Press', s: 3, r: 10 }, { n: 'Lat Pulldown', s: 3, r: 12 }, { n: 'Bicep Curl', s: 3, r: 12 }, { n: 'Tricep Pushdown', s: 3, r: 12 }] },
+  { name: '⬇️ Lower Body', exercises: [{ n: 'Squat', s: 4, r: 10 }, { n: 'Romanian Deadlift', s: 4, r: 10 }, { n: 'Leg Press', s: 3, r: 12 }, { n: 'Walking Lunge', s: 3, r: 12 }, { n: 'Leg Curl', s: 3, r: 12 }, { n: 'Calf Raise', s: 4, r: 15 }] },
+  // Full Body
+  { name: '🏋️ Full Body', exercises: [{ n: 'Squat', s: 3, r: 10 }, { n: 'Bench Press', s: 3, r: 10 }, { n: 'Barbell Row', s: 3, r: 10 }, { n: 'Overhead Press', s: 3, r: 10 }, { n: 'Bicep Curl', s: 2, r: 12 }, { n: 'Tricep Dip', s: 2, r: 12 }] },
+  // Body Part Specific
+  { name: '💪 Chest & Triceps', exercises: [{ n: 'Bench Press', s: 4, r: 10 }, { n: 'Incline Dumbbell Press', s: 3, r: 12 }, { n: 'Chest Fly', s: 3, r: 15 }, { n: 'Decline Push Up', s: 3, r: 15 }, { n: 'Tricep Pushdown', s: 3, r: 12 }, { n: 'Skull Crusher', s: 3, r: 12 }, { n: 'Tricep Kickback', s: 3, r: 12 }] },
+  { name: '🔙 Back & Biceps', exercises: [{ n: 'Pull Up', s: 4, r: 8 }, { n: 'Barbell Row', s: 4, r: 10 }, { n: 'Lat Pulldown', s: 3, r: 12 }, { n: 'Seated Row', s: 3, r: 12 }, { n: 'Face Pull', s: 3, r: 15 }, { n: 'Barbell Curl', s: 3, r: 12 }, { n: 'Hammer Curl', s: 3, r: 12 }, { n: 'Concentration Curl', s: 3, r: 12 }] },
+  { name: '🦵 Shoulders', exercises: [{ n: 'Overhead Press', s: 4, r: 10 }, { n: 'Lateral Raise', s: 4, r: 15 }, { n: 'Front Raise', s: 3, r: 12 }, { n: 'Rear Delt Fly', s: 3, r: 15 }, { n: 'Shrugs', s: 3, r: 12 }, { n: 'Arnold Press', s: 3, r: 10 }] },
+  { name: '🏋️ Arms Day', exercises: [{ n: 'Barbell Curl', s: 4, r: 10 }, { n: 'Hammer Curl', s: 3, r: 12 }, { n: 'Preacher Curl', s: 3, r: 12 }, { n: 'Tricep Pushdown', s: 4, r: 10 }, { n: 'Skull Crusher', s: 3, r: 12 }, { n: 'Overhead Tricep Extension', s: 3, r: 12 }, { n: 'Wrist Curl', s: 3, r: 15 }] },
+  { name: '🧘 Core / Abs', exercises: [{ n: 'Plank', s: 3, r: 1 }, { n: 'Crunches', s: 3, r: 20 }, { n: 'Leg Raise', s: 3, r: 15 }, { n: 'Russian Twist', s: 3, r: 20 }, { n: 'Mountain Climber', s: 3, r: 20 }, { n: 'Bicycle Crunch', s: 3, r: 20 }] },
+  // Cardio & HIIT
+  { name: '🏃 Cardio', exercises: [{ n: 'Running', s: 1, r: 1 }, { n: 'Jumping Jacks', s: 3, r: 30 }, { n: 'Burpees', s: 3, r: 10 }, { n: 'Jump Rope', s: 3, r: 1 }, { n: 'High Knees', s: 3, r: 30 }] },
+  { name: '🔥 HIIT Circuit', exercises: [{ n: 'Burpees', s: 4, r: 10 }, { n: 'Jump Squat', s: 4, r: 15 }, { n: 'Mountain Climber', s: 4, r: 20 }, { n: 'Push Up', s: 4, r: 15 }, { n: 'High Knees', s: 4, r: 30 }, { n: 'Plank', s: 4, r: 1 }] },
+  // Home Workout
+  { name: '🏠 Home (No Equipment)', exercises: [{ n: 'Push Up', s: 4, r: 15 }, { n: 'Squat (Bodyweight)', s: 4, r: 20 }, { n: 'Lunges', s: 3, r: 12 }, { n: 'Plank', s: 3, r: 1 }, { n: 'Burpees', s: 3, r: 10 }, { n: 'Tricep Dip (Chair)', s: 3, r: 12 }, { n: 'Crunches', s: 3, r: 20 }, { n: 'Glute Bridge', s: 3, r: 15 }] },
+  { name: '🏠 Home Upper', exercises: [{ n: 'Push Up', s: 4, r: 15 }, { n: 'Diamond Push Up', s: 3, r: 10 }, { n: 'Pike Push Up', s: 3, r: 10 }, { n: 'Tricep Dip (Chair)', s: 3, r: 12 }, { n: 'Superman', s: 3, r: 15 }, { n: 'Plank', s: 3, r: 1 }] },
+  { name: '🏠 Home Lower', exercises: [{ n: 'Squat (Bodyweight)', s: 4, r: 20 }, { n: 'Lunges', s: 3, r: 12 }, { n: 'Glute Bridge', s: 3, r: 15 }, { n: 'Wall Sit', s: 3, r: 1 }, { n: 'Calf Raise', s: 3, r: 20 }, { n: 'Jump Squat', s: 3, r: 12 }] },
+  // Beginner
+  { name: '🌱 Beginner Full Body', exercises: [{ n: 'Squat (Bodyweight)', s: 3, r: 12 }, { n: 'Push Up (Knee)', s: 3, r: 10 }, { n: 'Dumbbell Row', s: 3, r: 10 }, { n: 'Plank', s: 3, r: 1 }, { n: 'Lunges', s: 2, r: 10 }, { n: 'Bicep Curl', s: 2, r: 12 }] },
+  // Stretching & Yoga
+  { name: '🧘 Stretch & Mobility', exercises: [{ n: 'Neck Stretch', s: 1, r: 1 }, { n: 'Shoulder Stretch', s: 1, r: 1 }, { n: 'Cat-Cow Stretch', s: 1, r: 10 }, { n: 'Hamstring Stretch', s: 1, r: 1 }, { n: 'Hip Flexor Stretch', s: 1, r: 1 }, { n: 'Quad Stretch', s: 1, r: 1 }, { n: 'Child Pose', s: 1, r: 1 }] },
+];
+
+function getTemplates() {
+  const custom = DB.get('templates');
+  return [...DEFAULT_TEMPLATES, ...custom];
+}
+
+function renderTemplates() {
+  const templates = getTemplates();
+  document.getElementById('templateChips').innerHTML = templates.map((t, i) =>
+    `<button class="preset-chip" onclick="showTemplate(${i})">${t.name}</button>`
+  ).join('');
+}
+
+function showTemplate(idx) {
+  const t = getTemplates()[idx];
+  if (!t) return;
+  document.getElementById('templateDetail').innerHTML = `
+    <div style="margin-top:8px">
+      ${t.exercises.map(e => `<div class="meal-item"><div class="meal-item-name">${e.n}</div><div class="meal-item-qty">${e.s}×${e.r}</div></div>`).join('')}
+      <button class="btn btn-primary" onclick="loadTemplate(${idx})" style="margin-top:8px;font-size:13px">Load into Workout</button>
+    </div>`;
+}
+
+function loadTemplate(idx) {
+  const t = getTemplates()[idx];
+  if (!t) return;
+  const workouts = DB.get('workouts');
+  t.exercises.forEach(e => {
+    workouts.unshift({ id: Date.now() + Math.random() * 1000, name: e.n, sets: e.s, reps: e.r, weight: 0, duration: 0, calsBurned: Math.round(6 * e.s * e.r * 0.15), date: new Date().toISOString(), volume: 0 });
+  });
+  DB.set('workouts', workouts);
+  showToast(t.name + ' loaded! 💪');
+}
+
+function showCreateTemplate() {
+  const area = document.getElementById('createTemplateArea');
+  if (area.innerHTML) { area.innerHTML = ''; return; }
+  area.innerHTML = `<div class="diet-replace-box" style="margin-top:8px">
+    <input type="text" id="newTemplateName" placeholder="Template name (e.g. Chest & Triceps)">
+    <div style="font-size:11px;color:var(--text-secondary);margin:6px 0">Uses today's logged workouts as template</div>
+    <button class="btn btn-primary" onclick="createTemplate()" style="font-size:13px">Save Today as Template</button>
+  </div>`;
+}
+
+function createTemplate() {
+  const name = document.getElementById('newTemplateName').value.trim();
+  if (!name) { showToast('Enter a name'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  const todayWorkouts = DB.get('workouts').filter(w => w.date.startsWith(today));
+  if (!todayWorkouts.length) { showToast('No workouts logged today'); return; }
+  const templates = DB.get('templates');
+  templates.push({ name, exercises: todayWorkouts.map(w => ({ n: w.name, s: w.sets, r: w.reps })) });
+  DB.set('templates', templates);
+  document.getElementById('createTemplateArea').innerHTML = '';
+  renderTemplates();
+  showToast('Template saved! 📋');
+}
+
+// ==================== CUSTOM FOOD ====================
+function addCustomFood() {
+  const name = document.getElementById('customFoodName').value.trim();
+  const cal = parseInt(document.getElementById('customFoodCal').value) || 0;
+  const protein = parseFloat(document.getElementById('customFoodP').value) || 0;
+  const carbs = parseFloat(document.getElementById('customFoodC').value) || 0;
+  const fat = parseFloat(document.getElementById('customFoodF').value) || 0;
+  const serving = document.getElementById('customFoodServing').value.trim() || '1 serving';
+  if (!name || !cal) { showToast('Enter name and calories'); return; }
+
+  FOOD_DB.push({ name, cat: 'Custom', serving, unit: 'serving', size: serving, cal, protein, carbs, fat, fiber: 0 });
+  if (!FOOD_CATEGORIES.includes('Custom')) FOOD_CATEGORIES.push('Custom');
+
+  const custom = JSON.parse(localStorage.getItem('fitlog_custom_foods') || '[]');
+  custom.push({ name, cat: 'Custom', serving, unit: 'serving', size: serving, cal, protein, carbs, fat, fiber: 0 });
+  localStorage.setItem('fitlog_custom_foods', JSON.stringify(custom));
+
+  document.getElementById('customFoodName').value = '';
+  document.getElementById('customFoodCal').value = '';
+  document.getElementById('customFoodP').value = '';
+  document.getElementById('customFoodC').value = '';
+  document.getElementById('customFoodF').value = '';
+  document.getElementById('customFoodServing').value = '';
+  showToast(name + ' added to database! 🍽️');
+}
+
+(function loadCustomFoods() {
+  try {
+    const custom = JSON.parse(localStorage.getItem('fitlog_custom_foods') || '[]');
+    custom.forEach(f => { FOOD_DB.push(f); });
+    if (custom.length && !FOOD_CATEGORIES.includes('Custom')) FOOD_CATEGORIES.push('Custom');
+  } catch(e) {}
+})();
+
+// ==================== DARK MODE ====================
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('fitlog_dark', isDark ? '1' : '0');
+  document.getElementById('darkModeBtn').textContent = isDark ? 'On' : 'Off';
+  document.getElementById('darkModeBtn').classList.toggle('active', isDark);
+}
+
+(function loadDarkMode() {
+  if (localStorage.getItem('fitlog_dark') === '1') {
+    document.body.classList.add('dark');
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('darkModeBtn');
+      if (btn) { btn.textContent = 'On'; btn.classList.add('active'); }
+    });
+  }
+})();
+
+// ==================== EXPORT DATA ====================
+function exportData() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith('fitlog_')) data[key] = localStorage.getItem(key);
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fitlog_backup_' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  showToast('Data exported! 💾');
+}
+
+function clearAllData() {
+  if (!confirm('This will delete ALL your data. Are you sure?')) return;
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    if (localStorage.key(i).startsWith('fitlog_')) keys.push(localStorage.key(i));
+  }
+  keys.forEach(k => localStorage.removeItem(k));
+  location.reload();
+}
+
+// ==================== MEAL REMINDER (Dashboard) ====================
+function getNextMealReminder() {
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const t = h * 60 + m;
+  const meals = [
+    { name: '🌅 Breakfast', start: 420, end: 480 },
+    { name: '🍎 Morning Snack', start: 600, end: 630 },
+    { name: '☀️ Lunch', start: 750, end: 810 },
+    { name: '🫖 Evening Snack', start: 960, end: 1020 },
+    { name: '🌙 Dinner', start: 1140, end: 1200 },
+  ];
+  for (const meal of meals) {
+    if (t < meal.start) {
+      const diff = meal.start - t;
+      const hrs = Math.floor(diff / 60);
+      const mins = diff % 60;
+      return hrs > 0 ? `${meal.name} in ${hrs}h ${mins}m` : `${meal.name} in ${mins}m`;
+    }
+    if (t >= meal.start && t <= meal.end) return `${meal.name} — time to eat!`;
+  }
+  return '😴 All meals done for today!';
+}
+
+const origUpdateDashboard = updateDashboard;
+updateDashboard = function() {
+  origUpdateDashboard();
+  const sub = document.getElementById('headerSub');
+  if (sub && document.getElementById('pageDashboard').classList.contains('active')) {
+    sub.textContent = getNextMealReminder();
+  }
+};
+
+// ==================== PWA & NOTIFICATIONS ====================
+let deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  showInstallBanner();
+});
+
+function showInstallBanner() {
+  if (document.getElementById('installBanner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'installBanner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:linear-gradient(135deg,#FF6B35,#E55A28);color:white;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:1000;font-family:inherit;gap:10px;' +
+    'padding-top:calc(12px + env(safe-area-inset-top,0px))';
+  banner.innerHTML = `<div style="font-size:13px;font-weight:600">📱 Install FitLog as App</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="installPWA()" style="padding:6px 14px;border-radius:8px;border:none;background:white;color:#FF6B35;font-weight:600;font-size:12px;cursor:pointer;font-family:inherit">Install</button>
+      <button onclick="this.parentElement.parentElement.remove()" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.4);background:none;color:white;font-size:12px;cursor:pointer;font-family:inherit">Later</button>
+    </div>`;
+  document.body.prepend(banner);
+}
+
+function installPWA() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(r => {
+    if (r.outcome === 'accepted') showToast('App installed! 📱');
+    deferredInstallPrompt = null;
+    const b = document.getElementById('installBanner');
+    if (b) b.remove();
+  });
+}
+
+async function requestNotifications() {
+  if (!('Notification' in window)) { showToast('Notifications not supported'); return false; }
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') { showToast('Notifications blocked. Enable in browser settings.'); return false; }
+  const perm = await Notification.requestPermission();
+  return perm === 'granted';
+}
+
+function scheduleNotifications() {
+  if (Notification.permission !== 'granted') return;
+
+  const MEAL_REMINDERS = [
+    { h: 7, m: 0, msg: '🌅 Breakfast time! Start your day with a healthy meal.' },
+    { h: 10, m: 0, msg: '🍎 Mid-morning snack time! Grab some fruits or nuts.' },
+    { h: 12, m: 30, msg: '☀️ Lunch time! Fuel up with a balanced meal.' },
+    { h: 16, m: 0, msg: '🫖 Evening snack time! Light and healthy.' },
+    { h: 19, m: 30, msg: '🌙 Dinner time! Keep it light and nutritious.' },
+    { h: 22, m: 0, msg: '💧 Did you drink enough water today? 💧' },
+  ];
+
+  const now = new Date();
+  MEAL_REMINDERS.forEach(r => {
+    const target = new Date(now);
+    target.setHours(r.h, r.m, 0, 0);
+    if (target <= now) return;
+    const delay = target - now;
+    if (delay > 0 && delay < 86400000) {
+      setTimeout(() => {
+        if (Notification.permission === 'granted') {
+          new Notification('FitLog', { body: r.msg, icon: '🏋️', badge: '🏋️', tag: 'meal-' + r.h });
+        }
+      }, delay);
+    }
+  });
+}
+
+async function enableNotifications() {
+  const granted = await requestNotifications();
+  if (granted) {
+    localStorage.setItem('fitlog_notif', '1');
+    scheduleNotifications();
+    showToast('Notifications enabled! 🔔');
+    renderNotifStatus();
+  }
+}
+
+function disableNotifications() {
+  localStorage.setItem('fitlog_notif', '0');
+  showToast('Notifications disabled');
+  renderNotifStatus();
+}
+
+function renderNotifStatus() {
+  const btn = document.getElementById('notifBtn');
+  if (!btn) return;
+  const enabled = localStorage.getItem('fitlog_notif') === '1' && Notification.permission === 'granted';
+  btn.textContent = enabled ? 'On' : 'Off';
+  btn.classList.toggle('active', enabled);
+  btn.onclick = enabled ? disableNotifications : enableNotifications;
+}
+
+if (localStorage.getItem('fitlog_notif') === '1' && 'Notification' in window && Notification.permission === 'granted') {
+  scheduleNotifications();
+}
+
+init();
+</script>
+
+</body>
+</html>
